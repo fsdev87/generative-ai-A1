@@ -1,0 +1,5 @@
+# Tests and dummy models (python -m pytest backend/tests -q); not installed in the Docker image.
+-r requirements.txt
+pytest>=8
+httpx>=0.27
+torch>=2.2

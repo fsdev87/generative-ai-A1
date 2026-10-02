@@ -26,3 +26,6 @@ dist/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Placeholder ONNX models written by backend/scripts/make_dummy_models.py
+backend/models/

@@ -114,7 +114,7 @@ def make_val_manifest(val_ids, seed=VAL_MANIFEST_SEED, size=IMAGE_SIZE):
     for idx, (image_id, ctype) in enumerate(zip(val_ids, types)):
         entry_seed = int(rng.integers(2**31))
         spec = sample_spec(str(ctype), np.random.default_rng(entry_seed), size)
-        entries.append({"image_idx": idx, "image_id": image_id, "seed": entry_seed, **spec})
+        entries.append({"image_idx": idx, "image_id": image_id, "entry_seed": entry_seed, **spec})
     return {"split": "val", "seed": seed, "image_size": size, "entries": entries}
 
 
@@ -127,7 +127,7 @@ def make_test_manifest(test_ids, seed=TEST_MANIFEST_SEED, size=IMAGE_SIZE):
         for ctype, level in variants:
             entry_seed = int(rng.integers(2**31))
             spec = level_spec(ctype, level, np.random.default_rng(entry_seed), size)
-            entries.append({"image_idx": idx, "image_id": image_id, "seed": entry_seed, **spec})
+            entries.append({"image_idx": idx, "image_id": image_id, "entry_seed": entry_seed, **spec})
     return {"split": "test", "seed": seed, "image_size": size, "entries": entries}
 
 

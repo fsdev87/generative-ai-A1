@@ -1,0 +1,11 @@
+# Build context = repository root (docker build -f backend/Dockerfile .). BuildKit uses this
+# file instead of a root .dockerignore for backend/Dockerfile. Allow-list: send only what the
+# image copies, never datasets, checkpoints, ONNX files or node_modules.
+*
+!backend/requirements.txt
+!backend/app
+!src/__init__.py
+!src/data/__init__.py
+!src/data/corruptions.py
+**/__pycache__
+**/*.pyc
