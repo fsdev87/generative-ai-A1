@@ -5,7 +5,8 @@ from torch.utils.data import DataLoader
 from torchvision.transforms.functional import gaussian_blur as tv_gaussian_blur
 
 from src.data.corruptions import (
-    CLASSES, TEST_LEVELS, apply_spec, gaussian_blur, level_spec, make_occlusion_rects, sample_spec,
+    CLASSES, LEVELS, TEST_LEVELS, apply_spec, blur_strength, gaussian_blur, level_spec,
+    make_occlusion_rects, sample_spec, severity_level,
 )
 from src.data.pets import BalancedBatchSampler, RuntimeCorruptionDataset
 
@@ -55,6 +56,21 @@ def test_training_specs_in_range():
         assert b["k"] in (3, 5, 7) and 0.5 <= b["sigma"] <= 2.5
         o = sample_spec("occlusion", rng)
         assert 1 <= len(o["rects"]) <= 3 and 0.10 <= o["cover"] <= 0.35
+
+
+def test_test_levels_map_to_their_own_severity():
+    rng = np.random.default_rng(3)
+    for ctype in CLASSES[1:]:
+        for level in LEVELS:
+            assert severity_level(level_spec(ctype, level, rng)) == level
+
+
+def test_blur_severity_uses_kernel_strength():
+    strengths = [blur_strength(**TEST_LEVELS["blur"][lv]) for lv in LEVELS]
+    assert strengths == sorted(strengths)
+    # truncated to 3 taps, sigma=2.5 blurs less than the medium test level
+    assert blur_strength(3, 2.5) < strengths[1]
+    assert severity_level({"type": "blur", "k": 3, "sigma": 2.5}) == "low"
 
 
 def test_occlusion_rects_inside_image():

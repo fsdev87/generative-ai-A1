@@ -31,7 +31,21 @@ TEST_LEVELS = {
 
 # Bin edges (midpoints between the test levels) used to assign a severity level
 # to randomly sampled training/validation corruptions for per-severity reporting.
-_LEVEL_EDGES = {"salt": (0.055, 0.115), "blur": (1.1, 2.0), "occlusion": (0.15, 0.275)}
+# Salt is binned on p, occlusion on the covered fraction and blur on blur_strength():
+# the blur test levels (3, 0.7), (5, 1.5), (7, 2.5) have strengths 0.647, 1.195, 1.765.
+_LEVEL_EDGES = {"salt": (0.055, 0.115), "blur": (0.921, 1.480), "occlusion": (0.15, 0.275)}
+
+
+def blur_strength(k, sigma):
+    """Standard deviation (pixels) of the k-tap Gaussian kernel that is actually applied.
+
+    The kernel is truncated to k taps, so a large sigma flattens it towards a box
+    filter and sigma alone mis-ranks blur strength: (3, 2.5) gives 0.81, which is
+    milder than (5, 1.5) at 1.20.
+    """
+    g = gaussian_kernel1d(k, sigma).astype(np.float64)
+    x = np.arange(k) - (k - 1) / 2.0
+    return float(np.sqrt((g * x**2).sum()))
 
 
 def severity_level(spec):
@@ -39,7 +53,10 @@ def severity_level(spec):
     t = spec["type"]
     if t == "clean":
         return None
-    value = {"salt": spec.get("p"), "blur": spec.get("sigma"), "occlusion": spec.get("cover")}[t]
+    if t == "blur":
+        value = blur_strength(spec["k"], spec["sigma"])
+    else:
+        value = spec["p"] if t == "salt" else spec["cover"]
     lo, hi = _LEVEL_EDGES[t]
     return LEVELS[0] if value <= lo else LEVELS[1] if value <= hi else LEVELS[2]
 
