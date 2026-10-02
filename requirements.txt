@@ -1,0 +1,14 @@
+torch
+torchvision
+numpy
+pillow
+scikit-learn
+matplotlib
+pyyaml
+tqdm
+optuna
+wandb
+torchmetrics
+onnx
+onnxruntime
+gdown

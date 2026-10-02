@@ -1,0 +1,28 @@
+# Datasets, caches and large artifacts (download via scripts/download_data.py)
+/data/
+*.npy
+*.pt
+*.pth
+*.ckpt
+*.onnx
+outputs/
+wandb/
+mlruns/
+*.db
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
