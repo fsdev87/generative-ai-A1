@@ -1,6 +1,7 @@
 # Datasets, caches and large artifacts (download via scripts/download_data.py)
 /data/
 *.npy
+*.npz
 *.pt
 *.pth
 *.ckpt

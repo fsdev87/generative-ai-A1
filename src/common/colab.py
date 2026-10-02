@@ -42,6 +42,7 @@ def setup(fs2k=False, pets=True):
     if fs2k:
         _run(sys.executable, "scripts/download_data.py", "--only", "fs2k",
              "--archive-dir", archives, "--data-dir", env["DATA_DIR"])
+        _run(sys.executable, "scripts/prepare_fs2k.py")  # split check + cache; skips what exists
 
     os.environ["WANDB_API_KEY"] = userdata.get("WANDB_API_KEY")
     import torch
