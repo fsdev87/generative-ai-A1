@@ -5,7 +5,12 @@ from contextlib import contextmanager
 import numpy as np
 
 
-def init_run(name, group, config=None, job_type="train", tags=None):
+def init_run(name, group, config=None, job_type="train", tags=None, **kwargs):
+    """Start a W&B run; extra kwargs go to wandb.init (e.g. id=..., resume="allow" to continue a run).
+
+    Pass the run id as an argument, not via WANDB_RUN_ID: wandb reads that variable once
+    per process, so later Optuna trials would all resume the first trial's run.
+    """
     import wandb
 
     return wandb.init(
@@ -15,13 +20,14 @@ def init_run(name, group, config=None, job_type="train", tags=None):
         job_type=job_type,
         config=config or {},
         tags=tags,
+        **kwargs,
     )
 
 
 @contextmanager
-def wandb_run(name, group, config=None, job_type="train", tags=None):
+def wandb_run(name, group, config=None, job_type="train", tags=None, **kwargs):
     """A W&B run that is always finished, also when Optuna prunes the trial."""
-    run = init_run(name, group, config, job_type, tags)
+    run = init_run(name, group, config, job_type, tags, **kwargs)
     try:
         yield run
     finally:
