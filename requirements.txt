@@ -12,3 +12,5 @@ torchmetrics
 onnx
 onnxruntime
 gdown
+# Colab ships packages that need protobuf 5.x (ydf, grpcio-status, google-ai-generativelanguage)
+protobuf>=5.29.1,<6
