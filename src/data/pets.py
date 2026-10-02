@@ -10,6 +10,8 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset, Sampler
 
+from src.common.paths import MANIFEST_DIR, get_dir
+
 from .corruptions import CLASSES, CLASS_TO_IDX, LEVELS, apply_spec, level_spec, sample_spec
 
 IMAGE_SIZE = 128
@@ -62,6 +64,41 @@ def build_cache(pets_dir, ids, out_path, size=IMAGE_SIZE):
 
 def load_cache(cache_dir, split):
     return np.load(Path(cache_dir) / f"pets_{split}_{IMAGE_SIZE}.npy")
+
+
+def synthetic_images(n, size=IMAGE_SIZE, seed=0):
+    """Smooth random colour images (uint8) standing in for pets in smoke tests."""
+    rng = np.random.default_rng(seed)
+    images = np.empty((n, size, size, 3), dtype=np.uint8)
+    for i in range(n):
+        small = (rng.random((8, 8, 3)) * 255).astype(np.uint8)
+        images[i] = np.asarray(Image.fromarray(small).resize((size, size), Image.BICUBIC))
+    return images
+
+
+def load_pets(smoke=False, cache_dir=None):
+    """Clean images per split (uint8, N x 128 x 128 x 3) and the val/test manifests.
+
+    smoke=True returns a tiny synthetic dataset with matching manifests, so every
+    script can be smoke-tested on CPU without the real data.
+    """
+    if smoke:
+        sizes = {"train": 32, "val": 16, "test": 4}
+        images = {split: synthetic_images(n, seed=i) for i, (split, n) in enumerate(sizes.items())}
+        manifests = {
+            "val": make_val_manifest([f"val_{i}" for i in range(sizes["val"])]),
+            "test": make_test_manifest([f"test_{i}" for i in range(sizes["test"])]),
+        }
+        return images, manifests
+
+    cache_dir = Path(cache_dir) if cache_dir else get_dir("CACHE_DIR")
+    images = {split: load_cache(cache_dir, split) for split in ("train", "val", "test")}
+    manifests = {split: load_json(MANIFEST_DIR / f"pets_{split}_manifest.json") for split in ("val", "test")}
+    for split, manifest in manifests.items():
+        expected = max(e["image_idx"] for e in manifest["entries"]) + 1
+        if expected != len(images[split]):
+            raise ValueError(f"{split}: manifest indexes {expected} images but the cache holds {len(images[split])}")
+    return images, manifests
 
 
 # --------------------------------------------------------------------------- #

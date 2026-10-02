@@ -5,6 +5,8 @@ pillow
 scikit-learn
 matplotlib
 pyyaml
+pandas
+opencv-python-headless
 tqdm
 optuna
 wandb
