@@ -1,0 +1,8 @@
+# Build context = frontend/. Send only what the build stage needs.
+node_modules
+dist
+coverage
+*.local
+Dockerfile
+.dockerignore
+README.md

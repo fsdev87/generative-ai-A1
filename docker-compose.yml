@@ -1,0 +1,45 @@
+# GenAI Studio: starts the complete application with one command, from the repository root:
+#
+#   docker compose up --build
+#
+# Then open http://localhost:5173 (React app; nginx forwards /api to the backend).
+# The FastAPI backend is also published on http://localhost:8000 (docs: /api/docs).
+#
+# Put the trained ONNX models into ./models first (see models/README.md). Without them the
+# backend still starts, /api/health reports "degraded" and the app shows which files are missing.
+# After adding or replacing models: docker compose restart backend
+
+name: genai-studio
+
+services:
+  backend:
+    build:
+      context: .                       # the backend imports src/data/corruptions.py
+      dockerfile: backend/Dockerfile   # uses backend/Dockerfile.dockerignore
+    image: genai-studio-backend
+    environment:
+      MODEL_DIR: /models
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      # GET /api/health answers 200 whenever the server runs, also when models are missing.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s               # check every 2 s during start-up, so the frontend starts promptly
+
+  frontend:
+    build:
+      context: ./frontend
+    image: genai-studio-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy     # start once the backend answers its health check
+    restart: unless-stopped

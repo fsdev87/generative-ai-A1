@@ -1,0 +1,15 @@
+/* Tailwind CSS v3 (tokens in tailwind.config.ts) plus the base rules of the Stitch export. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    overscroll-behavior: none;
+  }
+}

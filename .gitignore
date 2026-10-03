@@ -41,3 +41,8 @@ report/*.fls
 report/*.fdb_latexmk
 report/*.synctex.gz
 report/b3.log
+
+# Trained models are downloaded, never committed (see models/README.md)
+models/*
+!models/README.md
+*.onnx.data
