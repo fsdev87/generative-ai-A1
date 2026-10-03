@@ -129,14 +129,30 @@ clean photos (to be confirmed by the blur-strength analysis in the classifier ev
 - For the AI-use appendix: an example of AI-generated code passing its own tests but failing in the
   real workflow, caught by checking the evaluation numbers against what a trained model must produce.
 
-### Specialist Optuna search (in progress)
+### Specialist Optuna search (2026-10-03, study `task2_specialists`)
 
-- Early trials: trial 1 mean val score 0.6045 (lr 1.86e-4, batch 64, base 48, latent 16×16×32,
-  alpha 0.68).
+- Command: `optuna_specialists --n-trials 20 --epochs 6 --timeout-min 80`; each trial trains all
+  three specialists for 6 epochs; objective = mean of their validation restoration scores.
 - First session stopped manually about 11 minutes in (while the checkpoint bug was being fixed):
-  trials 0–2 finished and were synced to Drive; trial 3 was interrupted and is recorded as FAIL
-  (KeyboardInterrupt). The study resumes from the 3 finished trials; the final summary's one
-  failed trial is this interruption, not an error in the code.
+  trials 0–2 had finished and were synced to Drive; the interrupted trial was never synced, so the
+  resumed study continued from trial 3. Result: exactly **20 finished trials (0–19)**, none failed,
+  all within the 80-minute cap.
+- **Best: trial 10 — mean validation score 0.6819** (salt 0.7006, blur 0.7295, occlusion 0.6155).
+- Selected (shared by the three specialists): lr 2.37e-3, batch 16, base channels 48,
+  latent **16×16×32 = 8,192 values (6× compression)**, alpha 0.516.
+
+**Interpretations for the report**
+
+1. *Bottleneck confound in the Task 1 vs Task 2 comparison.* The specialists' search space
+   included 16×16 latents and selected one twice as large as Task 1's (8×8×64 = 4,096). Part of any
+   advantage of hard routing over the universal model can therefore come from the larger
+   bottleneck rather than from specialisation alone. State this as a limitation in the cross-task
+   comparison (both are genuine bottlenecks: 6× and 12× compression).
+2. *Loss weighting again below the brief's 0.8:* alpha 0.52 (Task 1 chose 0.29) — the searches
+   consistently move weight toward the SSIM term.
+3. *Short-budget bias again:* the smallest batch size (16) won again, as in Task 1.
+4. After only 6 epochs the specialists' validation scores (blur 0.73) are already close to the
+   fully trained universal model's (blur 0.724 after 60 epochs).
 
 ## Task 3 — Soft mixture of experts
 
