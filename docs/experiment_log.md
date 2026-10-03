@@ -100,7 +100,39 @@ Hardware for every run: Google Colab free tier, NVIDIA Tesla T4, mixed precision
 
 ## Task 2 — Hard routing
 
-*Not started.*
+### Classifier Optuna search (2026-10-03, study `task2_classifier`)
+
+- Command: `optuna_classifier --n-trials 30 --epochs 12 --timeout-min 45`; 30 trials.
+- **Best: trial 1 — validation macro-F1 0.9959.** Selected: lr 1.70e-3, batch 32, channels
+  32-64-128-256, 1 conv per stage, dropout 0.146, weight decay 2.9e-4.
+- Pruned trials still reached macro-F1 ≈ 0.98 by epoch 3 (e.g. trial 29: 0.9783).
+
+**Interpretation:** the best configuration appeared at trial 1 and many configurations score
+≈ 0.98–0.996, i.e. the objective is nearly saturated: detecting the corruption type is easy for a
+CNN on this data. The remaining errors are expected among the mildest blurs vs naturally soft
+clean photos (to be confirmed by the blur-strength analysis in the classifier evaluation).
+
+### Incident: quick check contaminated the real checkpoints (found and fixed 2026-10-03)
+
+- Symptom: the classifier evaluation reported test accuracy 0.300, macro-recall exactly 0.250 and
+  validation macro-F1 0.1000 — i.e. one class predicted for every input, and the validation score
+  identical to the `--smoke` quick check's.
+- Cause: Task 2's `--smoke` runs saved into the real checkpoint folders (Tasks 1, 3 and 4 use a
+  separate `smoke/` subfolder). A quick check run before the real training left a *finished* tiny
+  model there; the final run with `--resume` then printed "nothing to do", so the real classifier
+  (and later the salt specialist) was never trained, and evaluation used the tiny model. A second,
+  independent bug crashed the evaluation's blur-detection plot (an error bar of −1e-17 at p = 0/1).
+- Fix (commit `bba804b`): a real run ignores a smoke `last.pt` and trains from scratch;
+  evaluation and export refuse smoke checkpoints; error bars clipped at 0; regression test added.
+- Unaffected: the Optuna searches (they never write checkpoints) and the blur and occlusion
+  specialists (no smoke checkpoint existed for them).
+- For the AI-use appendix: an example of AI-generated code passing its own tests but failing in the
+  real workflow, caught by checking the evaluation numbers against what a trained model must produce.
+
+### Specialist Optuna search (in progress)
+
+- Early trials: trial 1 mean val score 0.6045 (lr 1.86e-4, batch 64, base 48, latent 16×16×32,
+  alpha 0.68).
 
 ## Task 3 — Soft mixture of experts
 
