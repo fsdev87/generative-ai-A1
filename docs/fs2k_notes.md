@@ -352,18 +352,130 @@ style/source confound (Section 6.1) shows up as weak style control on photo1 pho
   (batch 32) and 2.03e-6 (batch 1) for both exporters. Graph opset 17, file 167.6 MB.
   `tests/test_task4_models.py` repeats this check (c = 16, both exporters, 32 inputs, < 1e-4).
 
-## 12. Notes for stage 2 (training and evaluation)
+## 12. Training (stage 2)
 
-- Data: `load_fs2k(smoke=...)` returns the three splits; `FS2KPairs(data, augment=True)`
-  for training and `FS2KPairs(data)` for val/test. Batches contain `photo`, `sketch`,
-  `style` (int64) and `id`. `make_smoke_data()` has 24 / 12 / 12 synthetic pairs.
-- Log the style-sensitivity metric (Section 10.1) and per-style validation L1 next to
-  D-real, D-fake, G-adv and G-L1, and use fixed validation ids covering all three styles and
-  photo2/photo3 for the sample grids.
-- Test reporting: per style, macro average, and seen vs unseen (source, style) combinations
-  (Section 6.1), with the paper-level offset of photo3/style-0 in mind.
-- With IN everywhere, batch size is a pure optimisation hyperparameter. pix2pix used Adam
-  (lr 2e-4, β = (0.5, 0.999)) and halved D's objective.
+Code: `src/task4/{config,train,optuna_search,evaluate,export_onnx,metrics}.py`, notebook
+`notebooks/task4_colab.ipynb`, tests `tests/test_task4_train.py`.
+
+### 12.1 Objective and update rule
+
+Per step (`train.gan_step`), exactly the brief's formulation:
+
+1. `fake = G(photo, style)`.
+2. **D**: `d_real = BCEWithLogits(D(photo, sketch, style), 1)`,
+   `d_fake = BCEWithLogits(D(photo, fake.detach(), style), 0)`, optimise `0.5 * (d_real + d_fake)`.
+   The factor 0.5 is pix2pix's ("we divide the objective by 2 while optimizing D, which slows
+   down the rate at which D learns relative to G").
+3. **G**: `g_adv = BCEWithLogits(D(photo, fake, style), 1)`, `g_l1 = L1(fake, sketch)`,
+   optimise `g_adv + lambda_l1 * g_l1`.
+
+The four components `d_real`, `d_fake`, `g_adv`, `g_l1` are kept apart everywhere: averaged per
+epoch for the console line and the W&B `train/*` panels, and streamed every `log_every` steps as
+`step/*`. They are the standard GAN health check: `d_real` and `d_fake` near 0.69 means D is at
+chance, both near 0 with a rising `g_adv` means D is winning.
+
+### 12.2 Decisions
+
+| Decision | Choice | Why |
+|---|---|---|
+| Optimiser | Adam, beta1 = 0.5, beta2 = 0.999, for G and D | DCGAN (Radford et al., 2016): "leaving the momentum term beta1 at the suggested value of 0.9 resulted in training oscillation and instability while reducing it to 0.5 helped stabilize training"; pix2pix uses the same with lr 2e-4 |
+| LR schedule | constant for the first half of the epochs, then linear decay to 0 (`decay_fraction`) | the pix2pix schedule; the decay quiets the adversarial game at the end, so the best epoch is not a lucky oscillation |
+| Separate `lr_g`, `lr_d` | both searched | their ratio, not their absolute size, sets the G/D balance, the main failure mode of GAN training |
+| `base_channels` shared by G and D | one hyperparameter | keeps the two capacities balanced (a D much larger than G overpowers it) and halves the search dimension; the brief also lists a single "base channel count" |
+| Early stopping | none | GAN validation curves are not monotone; stopping on a reconstruction metric would cut exactly the adversarial refinement the task is about. `best.pt` still tracks the best epoch, and Optuna's pruner handles hopeless trials |
+| AMP | fp16 autocast on CUDA, one `GradScaler` per optimiser, `--no-amp` to disable | GANs are the fragile case for fp16, so the risky parts are kept out of it: `binary_cross_entropy_with_logits` is on PyTorch's fp32 autocast list, the L1 term is cast to fp32 explicitly, and validation never runs under autocast. The scaler skips overflowing steps, and an epoch whose mean losses go non-finite raises `NonFiniteLossError` (Optuna turns that into a pruned trial) instead of training on silently. Verified here only that the autocast path runs without dtype errors and gives finite losses (this machine is CPU-only); the first Colab epoch shows whether fp16 is stable, and `--no-amp` is the fallback |
+| Batch size | searched over 4/8/16 | with instance norm everywhere (Section 10.1) it is a pure optimisation knob, not an architecture change |
+
+### 12.3 Validation metric and model selection
+
+`metrics.sketch_score = 0.5 * SSIM + 0.5 * (1 - L1)` on the validation split, with sketches mapped
+to [0, 1]. It mirrors `restoration_score` for Tasks 1-3 (half structure, half pixel fidelity) and,
+like it, excludes the tuned loss weight: it contains neither `lambda_l1` nor the discriminator, so
+trials with different weights and different discriminators are comparable. `best.pt` is the
+best-scoring epoch.
+
+**Known limitation, and what is done about it.** Reconstruction metrics mildly prefer the blurry
+L1-only optimum, so an unbounded search would push `lambda_l1` up and weaken the GAN term. Two
+guards: `lambda_l1` is searched in a bounded range (25-200, log-uniform, centred on the brief's
+100), and `edge_ratio` (mean gradient magnitude of the generated sketch divided by the ground
+truth's; 1 = as sharp as the artist's drawing) is logged every epoch, recorded as an Optuna user
+attribute and reported per style, so the sharpness cost of a large `lambda_l1` stays visible even
+though it is not optimised. The principled fix is a distribution metric (FID) or a perceptual one
+(LPIPS); both need packages this environment does not have - see Section 12.6.
+
+`style_gap` = (mean validation L1 when G is given a wrong style) - (L1 with the true style),
+averaged over both wrong styles, is logged every epoch. It is 0 for a model that ignores the
+condition and grows as the style embedding starts to matter, which is the direct test of the
+"embedding must be incorporated, not just an interface label" requirement.
+
+### 12.4 Fixed validation samples
+
+`train.fixed_sample_indices` picks two validation pairs per style, preferring distinct photo
+sources, from the deterministic validation order - the same pairs in every epoch, every trial and
+every run. Each grid row is **photo | ground truth | generated Style 1 | Style 2 | Style 3**, so one
+figure shows both the development over epochs and whether the style condition changes anything.
+
+### 12.5 Optuna (study `task4_cgan`)
+
+| Hyperparameter | Range | Reasoning |
+|---|---|---|
+| `lr_g`, `lr_d` | 5e-5 to 5e-4, log | an octave either side of pix2pix's 2e-4, searched separately for the balance |
+| `batch_size` | 4 / 8 / 16 | 224 / 112 / 56 updates per epoch on 899 pairs |
+| `base_channels` | 32 / 48 / 64 | 10.5M / 23.6M / 41.9M generator parameters; 64 gives a 168 MB ONNX file |
+| `dropout` | 0.0 to 0.5 | pix2pix's 0.5 is G's only noise source; 0 tests whether that noise helps at all here |
+| `style_dim` | 8 / 16 / 32 | any dim >= 2 can represent three arbitrary (gamma, beta) sets, so this mostly probes optimisation (Section 10.1) |
+| `lambda_l1` | 25 to 200, log | the brief's 100 in the middle; bounded for the reason in Section 12.3 |
+
+Trial 0 is enqueued as the brief's/pix2pix's reference point (lr 2e-4/2e-4, batch 8, base 64,
+dropout 0.5, style_dim 16, lambda 100), so every other trial is read against a known baseline.
+TPE (seed 42), `MedianPruner(n_startup_trials=4, n_warmup_steps=3)`, 10 epochs per trial against
+120 for the final run - the brief allows shorter trials, and the cost is that trials are ranked on
+early training, which favours configurations that start fast. The selected configuration is then
+retrained from scratch for the complete schedule. Trials only ever see the validation split.
+
+### 12.6 Test evaluation
+
+`src/task4/evaluate.py` reports **L1/MAE, SSIM, PSNR, edge_ratio and sketch_score** over the 1,046
+official test pairs, as: overall, per style, per photo source, per (source, style) cell, a macro
+average over styles (the pooled mean is dominated by style 0, which has 619 of the 1,046 pairs),
+and split by whether the (source, style) combination occurs in our training split (Section 6.1).
+Sketches are compared against the **original** ground truth with no background normalisation, so
+the grey paper of the photo3 sketches counts as error; that is deliberate (metrics stay against the
+official data) and is exactly why the per-source table exists. Outputs: per-pair
+`eval/test_records.csv`, `eval/summary.json`, `eval/failure_cases.csv` (each with an automatic
+pointer: unseen combination, grey-paper source, strokes too soft, too much ink), `tables/*.{csv,tex}`
+and the figures `test_examples.png` (median-score examples per style), `style_swap.png` (one photo,
+all three styles) and `failure_cases.png`.
+
+**FID / LPIPS are not implemented.** FID through `torchmetrics` needs the `torch-fidelity` package
+and LPIPS needs `lpips` (or torchvision backbone weights); both also download ImageNet weights at
+runtime. Neither is installed here and the project rules say to report rather than install, so they
+are listed as the recommended addition if the packages can be added. Note also that an FID over the
+46 style-2 test pairs would be statistically meaningless; it would only be informative pooled or on
+style 0.
+
+### 12.7 Measured cost (this machine, CPU) and GPU estimates
+
+CPU (Windows, fp32, batch 8, 112 steps per epoch, 899 training pairs): **0.27 s/step at
+`base_channels` 16, 0.79 s at 32, 2.52 s at 64**, i.e. 0.5 / 1.5 / 4.7 min per epoch. The whole CPU
+smoke suite (train + Optuna + evaluate + export on synthetic data) runs in about 28 s.
+Scaling the base-64 number by a typical T4 speed-up gives **roughly 10-20 s per epoch** there, so
+120 epochs is about 25-45 min and 20 trials x 10 epochs about 45-80 min: inside the 2.5 h budget,
+but these are *estimates*, not T4 measurements. Every training line prints its real epoch time, and
+the notebook says to lower `--epochs` if an epoch takes much more than ~25 s. The Optuna cell is
+additionally hard-capped with `--timeout-min 80`, and both stages resume after a disconnect.
+
+### 12.8 ONNX export
+
+`src/task4/export_onnx.py` exports **only the generator** (the discriminator is a training
+component) from `best.pt` to `ONNX_DIR/generator.onnx` via `src.common.onnx_utils.export_onnx`
+(TorchScript exporter, `dynamo=False`, opset 17 - Section 11 explains why that exporter is the safe
+one here). Inputs `photo` [N,3,128,128] in [-1,1] and `style` int64 [N]; output `sketch`
+[N,1,128,128] in [-1,1]; dynamic batch. Parity against ONNX Runtime is checked on 64 real test
+photos spread over the split and again on a single image; the file is renamed `*.onnx.failed` if
+the max absolute difference exceeds 1e-4. The model card `generator.json` records the exact
+preprocessing string the backend must mirror (`preprocess_photo`), the test metrics from
+`evaluate.py`, the hyperparameters, the parity result and the W&B run.
 
 ## References (verified against arXiv / proceedings pages)
 
@@ -381,6 +493,7 @@ style/source confound (Section 6.1) shows up as weak style control on photo1 pho
 - Odena, A., Olah, C., Shlens, J. *Conditional Image Synthesis with Auxiliary Classifier GANs.* ICML 2017 (PMLR 70). arXiv:1610.09585.
 - Odena, A., Dumoulin, V., Olah, C. *Deconvolution and Checkerboard Artifacts.* Distill, 2016. https://distill.pub/2016/deconv-checkerboard/
 - Perez, E., Strub, F., de Vries, H., Dumoulin, V., Courville, A. *FiLM: Visual Reasoning with a General Conditioning Layer.* AAAI 2018. arXiv:1709.07871.
+- Radford, A., Metz, L., Chintala, S. *Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks* (DCGAN). ICLR 2016. arXiv:1511.06434.
 - Reed, S., Akata, Z., Yan, X., Logeswaran, L., Schiele, B., Lee, H. *Generative Adversarial Text to Image Synthesis.* ICML 2016. arXiv:1605.05396.
 - Ronneberger, O., Fischer, P., Brox, T. *U-Net: Convolutional Networks for Biomedical Image Segmentation.* MICCAI 2015. arXiv:1505.04597.
 - Ulyanov, D., Vedaldi, A., Lempitsky, V. *Instance Normalization: The Missing Ingredient for Fast Stylization.* arXiv:1607.08022, 2016.
