@@ -30,3 +30,14 @@ Thumbs.db
 
 # Placeholder ONNX models written by backend/scripts/make_dummy_models.py
 backend/models/
+
+# LaTeX build artifacts
+report/*.aux
+report/*.bbl
+report/*.blg
+report/*.log
+report/*.out
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+report/b3.log

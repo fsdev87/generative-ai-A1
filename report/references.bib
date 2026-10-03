@@ -1,0 +1,1263 @@
+% References for the Generative AI Assignment 1 technical report.
+%
+% Every entry was verified online against the authoritative page named in the comment
+% above it (publisher/DOI landing page, arXiv abstract page, CVF Open Access, PMLR,
+% JMLR, the NeurIPS/ICLR proceedings, or official documentation). Author lists, titles,
+% venues, years, volumes and page numbers come from those pages, not from memory.
+% Where a paper has both an arXiv preprint and a published version, the published
+% version is cited and the arXiv id is given in a note for convenience.
+%
+% Verified on 2026-10-03.
+
+% =====================================================================
+% Autoencoders and denoising
+% =====================================================================
+
+% Verified: https://doi.org/10.1145/1390156.1390294
+@inproceedings{vincent2008denoising,
+  author    = {Vincent, Pascal and Larochelle, Hugo and Bengio, Yoshua and Manzagol, Pierre-Antoine},
+  title     = {Extracting and Composing Robust Features with Denoising Autoencoders},
+  booktitle = {Proceedings of the 25th International Conference on Machine Learning (ICML)},
+  pages     = {1096--1103},
+  year      = {2008},
+  publisher = {ACM},
+  doi       = {10.1145/1390156.1390294}
+}
+
+% Verified: https://jmlr.org/papers/v11/vincent10a.html
+@article{vincent2010stacked,
+  author  = {Vincent, Pascal and Larochelle, Hugo and Lajoie, Isabelle and Bengio, Yoshua and Manzagol, Pierre-Antoine},
+  title   = {Stacked Denoising Autoencoders: Learning Useful Representations in a Deep Network with a Local Denoising Criterion},
+  journal = {Journal of Machine Learning Research},
+  volume  = {11},
+  number  = {110},
+  pages   = {3371--3408},
+  year    = {2010}
+}
+
+% Verified: https://doi.org/10.1126/science.1127647
+@article{hinton2006reducing,
+  author  = {Hinton, G. E. and Salakhutdinov, R. R.},
+  title   = {Reducing the Dimensionality of Data with Neural Networks},
+  journal = {Science},
+  volume  = {313},
+  number  = {5786},
+  pages   = {504--507},
+  year    = {2006},
+  doi     = {10.1126/science.1127647}
+}
+
+% Verified: https://doi.org/10.1007/978-3-642-21735-7_7
+@incollection{masci2011stacked,
+  author    = {Masci, Jonathan and Meier, Ueli and Cire{\c{s}}an, Dan and Schmidhuber, J{\"u}rgen},
+  title     = {Stacked Convolutional Auto-Encoders for Hierarchical Feature Extraction},
+  booktitle = {Artificial Neural Networks and Machine Learning -- ICANN 2011},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {52--59},
+  year      = {2011},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-642-21735-7_7}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2012/hash/6cdd60ea0045eb7a6ec44c54d29ed402-Abstract.html
+@inproceedings{xie2012image,
+  author    = {Xie, Junyuan and Xu, Linli and Chen, Enhong},
+  title     = {Image Denoising and Inpainting with Deep Neural Networks},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {25},
+  year      = {2012},
+  publisher = {Curran Associates, Inc.}
+}
+
+% Verified: https://doi.org/10.1109/TIP.2017.2662206
+@article{zhang2017beyond,
+  author  = {Zhang, Kai and Zuo, Wangmeng and Chen, Yunjin and Meng, Deyu and Zhang, Lei},
+  title   = {Beyond a {Gaussian} Denoiser: Residual Learning of Deep {CNN} for Image Denoising},
+  journal = {IEEE Transactions on Image Processing},
+  volume  = {26},
+  number  = {7},
+  pages   = {3142--3155},
+  year    = {2017},
+  doi     = {10.1109/TIP.2017.2662206}
+}
+
+% =====================================================================
+% Architectures: skips, bottlenecks, upsampling
+% =====================================================================
+
+% Verified: https://doi.org/10.1007/978-3-319-24574-4_28
+@incollection{ronneberger2015unet,
+  author    = {Ronneberger, Olaf and Fischer, Philipp and Brox, Thomas},
+  title     = {{U-Net}: Convolutional Networks for Biomedical Image Segmentation},
+  booktitle = {Medical Image Computing and Computer-Assisted Intervention -- MICCAI 2015},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {234--241},
+  year      = {2015},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-319-24574-4_28}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2016/hash/0ed9422357395a0d4879191c66f4faa2-Abstract.html
+@inproceedings{mao2016image,
+  author    = {Mao, Xiaojiao and Shen, Chunhua and Yang, Yu-Bin},
+  title     = {Image Restoration Using Very Deep Convolutional Encoder-Decoder Networks with Symmetric Skip Connections},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {29},
+  year      = {2016},
+  publisher = {Curran Associates, Inc.},
+  note      = {arXiv:1603.09056}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2016.278
+@inproceedings{pathak2016context,
+  author    = {Pathak, Deepak and Kr{\"a}henb{\"u}hl, Philipp and Donahue, Jeff and Darrell, Trevor and Efros, Alexei A.},
+  title     = {Context Encoders: Feature Learning by Inpainting},
+  booktitle = {2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {2536--2544},
+  year      = {2016},
+  doi       = {10.1109/CVPR.2016.278}
+}
+
+% Verified: https://doi.org/10.23915/distill.00003
+@article{odena2016deconvolution,
+  author  = {Odena, Augustus and Dumoulin, Vincent and Olah, Chris},
+  title   = {Deconvolution and Checkerboard Artifacts},
+  journal = {Distill},
+  volume  = {1},
+  number  = {10},
+  year    = {2016},
+  doi     = {10.23915/distill.00003}
+}
+
+% Verified: https://arxiv.org/abs/1707.02937
+@misc{aitken2017checkerboard,
+  author = {Aitken, Andrew and Ledig, Christian and Theis, Lucas and Caballero, Jose and Wang, Zehan and Shi, Wenzhe},
+  title  = {Checkerboard Artifact Free Sub-Pixel Convolution: A Note on Sub-Pixel Convolution, Resize Convolution and Convolution Resize},
+  year   = {2017},
+  eprint = {1707.02937},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2016.207
+@inproceedings{shi2016real,
+  author    = {Shi, Wenzhe and Caballero, Jose and Husz{\'a}r, Ferenc and Totz, Johannes and Aitken, Andrew P. and Bishop, Rob and Rueckert, Daniel and Wang, Zehan},
+  title     = {Real-Time Single Image and Video Super-Resolution Using an Efficient Sub-Pixel Convolutional Neural Network},
+  booktitle = {2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {1874--1883},
+  year      = {2016},
+  doi       = {10.1109/CVPR.2016.207}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2016.90
+@inproceedings{he2016deep,
+  author    = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+  title     = {Deep Residual Learning for Image Recognition},
+  booktitle = {2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {770--778},
+  year      = {2016},
+  doi       = {10.1109/CVPR.2016.90}
+}
+
+% Verified: https://doi.org/10.1109/5.726791
+@article{lecun1998gradient,
+  author  = {LeCun, Y. and Bottou, L. and Bengio, Y. and Haffner, P.},
+  title   = {Gradient-Based Learning Applied to Document Recognition},
+  journal = {Proceedings of the IEEE},
+  volume  = {86},
+  number  = {11},
+  pages   = {2278--2324},
+  year    = {1998},
+  doi     = {10.1109/5.726791}
+}
+
+% Verified: https://proceedings.mlr.press/v37/ioffe15.html
+@inproceedings{ioffe2015batch,
+  author    = {Ioffe, Sergey and Szegedy, Christian},
+  title     = {Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift},
+  booktitle = {Proceedings of the 32nd International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {37},
+  pages     = {448--456},
+  year      = {2015},
+  publisher = {PMLR}
+}
+
+% Verified: https://jmlr.org/papers/v15/srivastava14a.html
+@article{srivastava2014dropout,
+  author  = {Srivastava, Nitish and Hinton, Geoffrey and Krizhevsky, Alex and Sutskever, Ilya and Salakhutdinov, Ruslan},
+  title   = {Dropout: A Simple Way to Prevent Neural Networks from Overfitting},
+  journal = {Journal of Machine Learning Research},
+  volume  = {15},
+  number  = {56},
+  pages   = {1929--1958},
+  year    = {2014}
+}
+
+% =====================================================================
+% Losses and image-quality metrics
+% =====================================================================
+
+% Verified: https://doi.org/10.1109/TCI.2016.2644865
+@article{zhao2017loss,
+  author  = {Zhao, Hang and Gallo, Orazio and Frosio, Iuri and Kautz, Jan},
+  title   = {Loss Functions for Image Restoration with Neural Networks},
+  journal = {IEEE Transactions on Computational Imaging},
+  volume  = {3},
+  number  = {1},
+  pages   = {47--57},
+  year    = {2017},
+  doi     = {10.1109/TCI.2016.2644865},
+  note    = {arXiv:1511.08861}
+}
+
+% Verified: https://doi.org/10.1109/TIP.2003.819861
+@article{wang2004image,
+  author  = {Wang, Zhou and Bovik, A. C. and Sheikh, H. R. and Simoncelli, E. P.},
+  title   = {Image Quality Assessment: From Error Visibility to Structural Similarity},
+  journal = {IEEE Transactions on Image Processing},
+  volume  = {13},
+  number  = {4},
+  pages   = {600--612},
+  year    = {2004},
+  doi     = {10.1109/TIP.2003.819861}
+}
+
+% Verified: https://doi.org/10.1109/ACSSC.2003.1292216
+@inproceedings{wang2003multiscale,
+  author    = {Wang, Z. and Simoncelli, E. P. and Bovik, A. C.},
+  title     = {Multiscale Structural Similarity for Image Quality Assessment},
+  booktitle = {The Thirty-Seventh Asilomar Conference on Signals, Systems and Computers},
+  pages     = {1398--1402},
+  year      = {2003},
+  doi       = {10.1109/ACSSC.2003.1292216}
+}
+
+% Verified: https://doi.org/10.1049/el:20080522
+@article{huynh2008scope,
+  author  = {Huynh-Thu, Q. and Ghanbari, M.},
+  title   = {Scope of Validity of {PSNR} in Image/Video Quality Assessment},
+  journal = {Electronics Letters},
+  volume  = {44},
+  number  = {13},
+  pages   = {800--801},
+  year    = {2008},
+  doi     = {10.1049/el:20080522}
+}
+
+% Verified: https://doi.org/10.1109/ICPR.2010.579
+@inproceedings{hore2010image,
+  author    = {Hore, Alain and Ziou, Djemel},
+  title     = {Image Quality Metrics: {PSNR} vs. {SSIM}},
+  booktitle = {2010 20th International Conference on Pattern Recognition (ICPR)},
+  pages     = {2366--2369},
+  year      = {2010},
+  doi       = {10.1109/ICPR.2010.579}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2018.00068
+@inproceedings{zhang2018unreasonable,
+  author    = {Zhang, Richard and Isola, Phillip and Efros, Alexei A. and Shechtman, Eli and Wang, Oliver},
+  title     = {The Unreasonable Effectiveness of Deep Features as a Perceptual Metric},
+  booktitle = {2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {586--595},
+  year      = {2018},
+  doi       = {10.1109/CVPR.2018.00068}
+}
+
+% Verified: https://arxiv.org/abs/1603.08155
+@misc{johnson2016perceptual,
+  author = {Johnson, Justin and Alahi, Alexandre and Fei-Fei, Li},
+  title  = {Perceptual Losses for Real-Time Style Transfer and Super-Resolution},
+  year   = {2016},
+  eprint = {1603.08155},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV}
+}
+
+% =====================================================================
+% Classical restoration baselines
+% =====================================================================
+
+% Verified: https://doi.org/10.1109/83.370679
+@article{hwang1995adaptive,
+  author  = {Hwang, H. and Haddad, R. A.},
+  title   = {Adaptive Median Filters: New Algorithms and Results},
+  journal = {IEEE Transactions on Image Processing},
+  volume  = {4},
+  number  = {4},
+  pages   = {499--502},
+  year    = {1995},
+  doi     = {10.1109/83.370679}
+}
+
+% Verified: https://doi.org/10.1109/TIP.2005.852196
+@article{chan2005salt,
+  author  = {Chan, R. H. and Ho, Chung-Wa and Nikolova, M.},
+  title   = {Salt-and-Pepper Noise Removal by Median-Type Noise Detectors and Detail-Preserving Regularization},
+  journal = {IEEE Transactions on Image Processing},
+  volume  = {14},
+  number  = {10},
+  pages   = {1479--1485},
+  year    = {2005},
+  doi     = {10.1109/TIP.2005.852196}
+}
+
+% Verified: https://doi.org/10.1364/JOSA.62.000055
+@article{richardson1972bayesian,
+  author  = {Richardson, William Hadley},
+  title   = {Bayesian-Based Iterative Method of Image Restoration},
+  journal = {Journal of the Optical Society of America},
+  volume  = {62},
+  number  = {1},
+  pages   = {55--59},
+  year    = {1972},
+  doi     = {10.1364/JOSA.62.000055}
+}
+
+% Verified: https://doi.org/10.1086/111605
+@article{lucy1974iterative,
+  author  = {Lucy, L. B.},
+  title   = {An Iterative Technique for the Rectification of Observed Distributions},
+  journal = {The Astronomical Journal},
+  volume  = {79},
+  pages   = {745--754},
+  year    = {1974},
+  doi     = {10.1086/111605}
+}
+
+% Verified: https://doi.org/10.1080/10867651.2004.10487596
+@article{telea2004image,
+  author  = {Telea, Alexandru},
+  title   = {An Image Inpainting Technique Based on the Fast Marching Method},
+  journal = {Journal of Graphics Tools},
+  volume  = {9},
+  number  = {1},
+  pages   = {23--34},
+  year    = {2004},
+  doi     = {10.1080/10867651.2004.10487596}
+}
+
+% Verified: https://doi.org/10.1145/344779.344972
+@inproceedings{bertalmio2000image,
+  author    = {Bertalmio, Marcelo and Sapiro, Guillermo and Caselles, Vincent and Ballester, Coloma},
+  title     = {Image Inpainting},
+  booktitle = {Proceedings of the 27th Annual Conference on Computer Graphics and Interactive Techniques (SIGGRAPH)},
+  pages     = {417--424},
+  year      = {2000},
+  doi       = {10.1145/344779.344972}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2001.990497
+@inproceedings{bertalmio2001navier,
+  author    = {Bertalmio, M. and Bertozzi, A. L. and Sapiro, G.},
+  title     = {Navier-Stokes, Fluid Dynamics, and Image and Video Inpainting},
+  booktitle = {Proceedings of the 2001 IEEE Computer Society Conference on Computer Vision and Pattern Recognition (CVPR)},
+  volume    = {1},
+  pages     = {I-355--I-362},
+  year      = {2001},
+  doi       = {10.1109/CVPR.2001.990497}
+}
+
+% =====================================================================
+% Classification: imbalance, metrics, calibration
+% =====================================================================
+
+% Verified: https://doi.org/10.1016/j.neunet.2018.07.011
+@article{buda2018systematic,
+  author  = {Buda, Mateusz and Maki, Atsuto and Mazurowski, Maciej A.},
+  title   = {A Systematic Study of the Class Imbalance Problem in Convolutional Neural Networks},
+  journal = {Neural Networks},
+  volume  = {106},
+  pages   = {249--259},
+  year    = {2018},
+  doi     = {10.1016/j.neunet.2018.07.011}
+}
+
+% Verified: https://doi.org/10.1016/j.ipm.2009.03.002
+@article{sokolova2009systematic,
+  author  = {Sokolova, Marina and Lapalme, Guy},
+  title   = {A Systematic Analysis of Performance Measures for Classification Tasks},
+  journal = {Information Processing \& Management},
+  volume  = {45},
+  number  = {4},
+  pages   = {427--437},
+  year    = {2009},
+  doi     = {10.1016/j.ipm.2009.03.002}
+}
+
+% Verified: https://proceedings.mlr.press/v70/guo17a.html
+@inproceedings{guo2017calibration,
+  author    = {Guo, Chuan and Pleiss, Geoff and Sun, Yu and Weinberger, Kilian Q.},
+  title     = {On Calibration of Modern Neural Networks},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {70},
+  pages     = {1321--1330},
+  year      = {2017},
+  publisher = {PMLR}
+}
+
+% =====================================================================
+% Routing, specialist tools and all-in-one restoration
+% =====================================================================
+
+% Verified: https://doi.org/10.1109/CVPR.2018.00259
+@inproceedings{yu2018crafting,
+  author    = {Yu, Ke and Dong, Chao and Lin, Liang and Loy, Chen Change},
+  title     = {Crafting a Toolchain for Image Restoration by Deep Reinforcement Learning},
+  booktitle = {2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {2443--2452},
+  year      = {2018},
+  doi       = {10.1109/CVPR.2018.00259}
+}
+
+% Verified: https://doi.org/10.1109/TPAMI.2021.3096255
+@article{yu2022path,
+  author  = {Yu, Ke and Wang, Xintao and Dong, Chao and Tang, Xiaoou and Loy, Chen Change},
+  title   = {Path-Restore: Learning Network Path Selection for Image Restoration},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {44},
+  number  = {10},
+  pages   = {7078--7092},
+  year    = {2022},
+  doi     = {10.1109/TPAMI.2021.3096255}
+}
+
+% Verified: https://doi.org/10.1109/CVPR52688.2022.01693
+@inproceedings{li2022allinone,
+  author    = {Li, Boyun and Liu, Xiao and Hu, Peng and Wu, Zhongqin and Lv, Jiancheng and Peng, Xi},
+  title     = {All-in-One Image Restoration for Unknown Corruption},
+  booktitle = {2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {17431--17441},
+  year      = {2022},
+  doi       = {10.1109/CVPR52688.2022.01693}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2023/hash/e187897ed7780a579a0d76fd4a35d107-Abstract-Conference.html
+@inproceedings{potlapalli2023promptir,
+  author    = {Potlapalli, Vaishnav and Zamir, Syed Waqas and Khan, Salman and Shahbaz Khan, Fahad},
+  title     = {{PromptIR}: Prompting for All-in-One Image Restoration},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {36},
+  pages     = {71275--71293},
+  year      = {2023},
+  publisher = {Curran Associates, Inc.}
+}
+
+% =====================================================================
+% Mixture of experts
+% =====================================================================
+
+% Verified: https://doi.org/10.1162/neco.1991.3.1.79
+@article{jacobs1991adaptive,
+  author  = {Jacobs, Robert A. and Jordan, Michael I. and Nowlan, Steven J. and Hinton, Geoffrey E.},
+  title   = {Adaptive Mixtures of Local Experts},
+  journal = {Neural Computation},
+  volume  = {3},
+  number  = {1},
+  pages   = {79--87},
+  year    = {1991},
+  doi     = {10.1162/neco.1991.3.1.79}
+}
+
+% Verified: https://doi.org/10.1162/neco.1994.6.2.181
+@article{jordan1994hierarchical,
+  author  = {Jordan, Michael I. and Jacobs, Robert A.},
+  title   = {Hierarchical Mixtures of Experts and the {EM} Algorithm},
+  journal = {Neural Computation},
+  volume  = {6},
+  number  = {2},
+  pages   = {181--214},
+  year    = {1994},
+  doi     = {10.1162/neco.1994.6.2.181}
+}
+
+% Verified: https://doi.org/10.1109/TNNLS.2012.2200299
+@article{yuksel2012twenty,
+  author  = {Yuksel, S. E. and Wilson, J. N. and Gader, P. D.},
+  title   = {Twenty Years of Mixture of Experts},
+  journal = {IEEE Transactions on Neural Networks and Learning Systems},
+  volume  = {23},
+  number  = {8},
+  pages   = {1177--1193},
+  year    = {2012},
+  doi     = {10.1109/TNNLS.2012.2200299}
+}
+
+% Verified: https://arxiv.org/abs/1701.06538 (ICLR 2017; https://iclr.cc/archive/www/doku.php%3Fid=iclr2017:conference_posters.html)
+@inproceedings{shazeer2017outrageously,
+  author    = {Shazeer, Noam and Mirhoseini, Azalia and Maziarz, Krzysztof and Davis, Andy and Le, Quoc and Hinton, Geoffrey and Dean, Jeff},
+  title     = {Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer},
+  booktitle = {5th International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+  note      = {arXiv:1701.06538}
+}
+
+% Verified: https://jmlr.org/papers/v23/21-0998.html
+@article{fedus2022switch,
+  author  = {Fedus, William and Zoph, Barret and Shazeer, Noam},
+  title   = {Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity},
+  journal = {Journal of Machine Learning Research},
+  volume  = {23},
+  number  = {120},
+  pages   = {1--39},
+  year    = {2022}
+}
+
+% Verified: https://arxiv.org/abs/2006.16668 (ICLR 2021; https://iclr.cc/virtual/2021/poster/3196)
+@inproceedings{lepikhin2021gshard,
+  author    = {Lepikhin, Dmitry and Lee, HyoukJoong and Xu, Yuanzhong and Chen, Dehao and Firat, Orhan and Huang, Yanping and Krikun, Maxim and Shazeer, Noam and Chen, Zhifeng},
+  title     = {{GShard}: Scaling Giant Models with Conditional Computation and Automatic Sharding},
+  booktitle = {9th International Conference on Learning Representations (ICLR)},
+  year      = {2021},
+  note      = {arXiv:2006.16668}
+}
+
+% Verified: https://arxiv.org/abs/2308.00951 (ICLR 2024; https://iclr.cc/virtual/2024/poster/17998)
+@inproceedings{puigcerver2024soft,
+  author    = {Puigcerver, Joan and Riquelme, Carlos and Mustafa, Basil and Houlsby, Neil},
+  title     = {From Sparse to Soft Mixtures of Experts},
+  booktitle = {12th International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  note      = {arXiv:2308.00951}
+}
+
+% Verified: https://arxiv.org/abs/1312.4314
+@misc{eigen2013learning,
+  author = {Eigen, David and Ranzato, Marc'Aurelio and Sutskever, Ilya},
+  title  = {Learning Factored Representations in a Deep Mixture of Experts},
+  year   = {2013},
+  eprint = {1312.4314},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG}
+}
+
+% Verified: https://arxiv.org/abs/1511.06297
+@misc{bengio2015conditional,
+  author = {Bengio, Emmanuel and Bacon, Pierre-Luc and Pineau, Joelle and Precup, Doina},
+  title  = {Conditional Computation in Neural Networks for Faster Models},
+  year   = {2015},
+  eprint = {1511.06297},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG}
+}
+
+% =====================================================================
+% Gating: temperature, entropy and balance regularisers
+% =====================================================================
+
+% Verified: https://arxiv.org/abs/1503.02531
+@misc{hinton2015distilling,
+  author = {Hinton, Geoffrey and Vinyals, Oriol and Dean, Jeff},
+  title  = {Distilling the Knowledge in a Neural Network},
+  year   = {2015},
+  eprint = {1503.02531},
+  archivePrefix = {arXiv},
+  primaryClass  = {stat.ML}
+}
+
+% Verified: https://arxiv.org/abs/1611.01144 (ICLR 2017; https://iclr.cc/archive/www/doku.php%3Fid=iclr2017:conference_posters.html)
+@inproceedings{jang2017categorical,
+  author    = {Jang, Eric and Gu, Shixiang and Poole, Ben},
+  title     = {Categorical Reparameterization with {Gumbel-Softmax}},
+  booktitle = {5th International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+  note      = {arXiv:1611.01144}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2004/hash/96f2b50b5d3613adf9c27049b2a888c7-Abstract.html
+@inproceedings{grandvalet2004semi,
+  author    = {Grandvalet, Yves and Bengio, Yoshua},
+  title     = {Semi-supervised Learning by Entropy Minimization},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {17},
+  year      = {2004},
+  publisher = {MIT Press}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2010/hash/42998cf32d552343bc8e460416382dca-Abstract.html
+@inproceedings{krause2010discriminative,
+  author    = {Krause, Andreas and Perona, Pietro and Gomes, Ryan},
+  title     = {Discriminative Clustering by Regularized Information Maximization},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {23},
+  year      = {2010},
+  publisher = {Curran Associates, Inc.}
+}
+
+% Verified: https://arxiv.org/abs/1701.06548 (ICLR 2017 workshop; https://iclr.cc/archive/www/doku.php%3Fid=iclr2017:workshop_posters.html)
+@misc{pereyra2017regularizing,
+  author = {Pereyra, Gabriel and Tucker, George and Chorowski, Jan and Kaiser, {\L}ukasz and Hinton, Geoffrey},
+  title  = {Regularizing Neural Networks by Penalizing Confident Output Distributions},
+  year   = {2017},
+  eprint = {1701.06548},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.NE}
+}
+
+% =====================================================================
+% Transfer and staged fine-tuning
+% =====================================================================
+
+% Verified: https://arxiv.org/abs/2202.10054 (ICLR 2022; https://iclr.cc/virtual/2022/poster/5945)
+@inproceedings{kumar2022finetuning,
+  author    = {Kumar, Ananya and Raghunathan, Aditi and Jones, Robbie and Ma, Tengyu and Liang, Percy},
+  title     = {Fine-Tuning Can Distort Pretrained Features and Underperform Out-of-Distribution},
+  booktitle = {10th International Conference on Learning Representations (ICLR)},
+  year      = {2022},
+  note      = {arXiv:2202.10054}
+}
+
+% Verified: https://doi.org/10.18653/v1/P18-1031
+@inproceedings{howard2018universal,
+  author    = {Howard, Jeremy and Ruder, Sebastian},
+  title     = {Universal Language Model Fine-tuning for Text Classification},
+  booktitle = {Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages     = {328--339},
+  year      = {2018},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/P18-1031}
+}
+
+% =====================================================================
+% Generative adversarial networks
+% =====================================================================
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2014/hash/f033ed80deb0234979a61f95710dbe25-Abstract.html
+@inproceedings{goodfellow2014generative,
+  author    = {Goodfellow, Ian J. and Pouget-Abadie, Jean and Mirza, Mehdi and Xu, Bing and Warde-Farley, David and Ozair, Sherjil and Courville, Aaron and Bengio, Yoshua},
+  title     = {Generative Adversarial Nets},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {27},
+  year      = {2014},
+  publisher = {Curran Associates, Inc.}
+}
+
+% Verified: https://arxiv.org/abs/1411.1784
+@misc{mirza2014conditional,
+  author = {Mirza, Mehdi and Osindero, Simon},
+  title  = {Conditional Generative Adversarial Nets},
+  year   = {2014},
+  eprint = {1411.1784},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2017.632
+@inproceedings{isola2017image,
+  author    = {Isola, Phillip and Zhu, Jun-Yan and Zhou, Tinghui and Efros, Alexei A.},
+  title     = {Image-to-Image Translation with Conditional Adversarial Networks},
+  booktitle = {2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {5967--5976},
+  year      = {2017},
+  doi       = {10.1109/CVPR.2017.632},
+  note      = {arXiv:1611.07004}
+}
+
+% Verified: https://arxiv.org/abs/1511.06434 (ICLR 2016; https://iclr.cc/archive/www/doku.php%3Fid=iclr2016:accepted-main.html)
+@inproceedings{radford2016unsupervised,
+  author    = {Radford, Alec and Metz, Luke and Chintala, Soumith},
+  title     = {Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks},
+  booktitle = {4th International Conference on Learning Representations (ICLR)},
+  year      = {2016},
+  note      = {arXiv:1511.06434}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2018.00916
+@inproceedings{choi2018stargan,
+  author    = {Choi, Yunjey and Choi, Minje and Kim, Munyoung and Ha, Jung-Woo and Kim, Sunghun and Choo, Jaegul},
+  title     = {{StarGAN}: Unified Generative Adversarial Networks for Multi-Domain Image-to-Image Translation},
+  booktitle = {2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {8789--8797},
+  year      = {2018},
+  doi       = {10.1109/CVPR.2018.00916}
+}
+
+% =====================================================================
+% Conditioning mechanisms
+% =====================================================================
+
+% Verified: https://arxiv.org/abs/1610.07629 (ICLR 2017; https://iclr.cc/archive/www/doku.php%3Fid=iclr2017:conference_posters.html)
+@inproceedings{dumoulin2017learned,
+  author    = {Dumoulin, Vincent and Shlens, Jonathon and Kudlur, Manjunath},
+  title     = {A Learned Representation for Artistic Style},
+  booktitle = {5th International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+  note      = {arXiv:1610.07629}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2017/hash/6fab6e3aa34248ec1e34a4aeedecddc8-Abstract.html
+@inproceedings{devries2017modulating,
+  author    = {de Vries, Harm and Strub, Florian and Mary, Jeremie and Larochelle, Hugo and Pietquin, Olivier and Courville, Aaron},
+  title     = {Modulating Early Visual Processing by Language},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {30},
+  year      = {2017},
+  publisher = {Curran Associates, Inc.}
+}
+
+% Verified: https://doi.org/10.1609/aaai.v32i1.11671
+@article{perez2018film,
+  author  = {Perez, Ethan and Strub, Florian and de Vries, Harm and Dumoulin, Vincent and Courville, Aaron},
+  title   = {{FiLM}: Visual Reasoning with a General Conditioning Layer},
+  journal = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume  = {32},
+  number  = {1},
+  year    = {2018},
+  doi     = {10.1609/aaai.v32i1.11671}
+}
+
+% Verified: https://doi.org/10.1109/ICCV.2017.167
+@inproceedings{huang2017arbitrary,
+  author    = {Huang, Xun and Belongie, Serge},
+  title     = {Arbitrary Style Transfer in Real-Time with Adaptive Instance Normalization},
+  booktitle = {2017 IEEE International Conference on Computer Vision (ICCV)},
+  pages     = {1510--1519},
+  year      = {2017},
+  doi       = {10.1109/ICCV.2017.167}
+}
+
+% Verified: https://proceedings.mlr.press/v70/odena17a.html
+@inproceedings{odena2017conditional,
+  author    = {Odena, Augustus and Olah, Christopher and Shlens, Jonathon},
+  title     = {Conditional Image Synthesis with Auxiliary Classifier {GANs}},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {70},
+  pages     = {2642--2651},
+  year      = {2017},
+  publisher = {PMLR}
+}
+
+% Verified: https://arxiv.org/abs/1802.05637 (ICLR 2018; https://iclr.cc/Conferences/2018/Schedule)
+@inproceedings{miyato2018cgans,
+  author    = {Miyato, Takeru and Koyama, Masanori},
+  title     = {{cGANs} with Projection Discriminator},
+  booktitle = {6th International Conference on Learning Representations (ICLR)},
+  year      = {2018},
+  note      = {arXiv:1802.05637}
+}
+
+% =====================================================================
+% Face sketch synthesis and datasets
+% =====================================================================
+
+% Verified: https://doi.org/10.1007/s11633-022-1349-9
+@article{fan2022facial,
+  author  = {Fan, Deng-Ping and Huang, Ziling and Zheng, Peng and Liu, Hong and Qin, Xuebin and Van Gool, Luc},
+  title   = {Facial-Sketch Synthesis: A New Challenge},
+  journal = {Machine Intelligence Research},
+  volume  = {19},
+  number  = {4},
+  pages   = {257--287},
+  year    = {2022},
+  doi     = {10.1007/s11633-022-1349-9}
+}
+
+% Verified: https://doi.org/10.1109/ICCV.2019.00571
+@inproceedings{fan2019scoot,
+  author    = {Fan, Deng-Ping and Zhang, Shengchuan and Wu, Yu-Huan and Liu, Yun and Cheng, Ming-Ming and Ren, Bo and Rosin, Paul L. and Ji, Rongrong},
+  title     = {{Scoot}: A Perceptual Metric for Facial Sketches},
+  booktitle = {2019 IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages     = {5611--5621},
+  year      = {2019},
+  doi       = {10.1109/ICCV.2019.00571}
+}
+
+% Verified: https://doi.org/10.1109/TPAMI.2008.222
+@article{wang2009face,
+  author  = {Wang, Xiaogang and Tang, Xiaoou},
+  title   = {Face Photo-Sketch Synthesis and Recognition},
+  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  volume  = {31},
+  number  = {11},
+  pages   = {1955--1967},
+  year    = {2009},
+  doi     = {10.1109/TPAMI.2008.222}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2012.6248092
+@inproceedings{parkhi2012cats,
+  author    = {Parkhi, O. M. and Vedaldi, A. and Zisserman, A. and Jawahar, C. V.},
+  title     = {Cats and Dogs},
+  booktitle = {2012 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {3498--3505},
+  year      = {2012},
+  doi       = {10.1109/CVPR.2012.6248092}
+}
+
+% =====================================================================
+% GAN evaluation
+% =====================================================================
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2017/hash/8a1d694707eb0fefe65871369074926d-Abstract.html
+@inproceedings{heusel2017gans,
+  author    = {Heusel, Martin and Ramsauer, Hubert and Unterthiner, Thomas and Nessler, Bernhard and Hochreiter, Sepp},
+  title     = {{GANs} Trained by a Two Time-Scale Update Rule Converge to a Local {Nash} Equilibrium},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {30},
+  year      = {2017},
+  publisher = {Curran Associates, Inc.}
+}
+
+% Verified: https://doi.org/10.1109/CVPR42600.2020.00611
+@inproceedings{chong2020effectively,
+  author    = {Chong, Min Jin and Forsyth, David},
+  title     = {Effectively Unbiased {FID} and Inception Score and Where to Find Them},
+  booktitle = {2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {6069--6078},
+  year      = {2020},
+  doi       = {10.1109/CVPR42600.2020.00611}
+}
+
+% Verified: https://doi.org/10.1109/CVPR52688.2022.01112
+@inproceedings{parmar2022aliased,
+  author    = {Parmar, Gaurav and Zhang, Richard and Zhu, Jun-Yan},
+  title     = {On Aliased Resizing and Surprising Subtleties in {GAN} Evaluation},
+  booktitle = {2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {11400--11410},
+  year      = {2022},
+  doi       = {10.1109/CVPR52688.2022.01112}
+}
+
+% Verified: https://arxiv.org/abs/1801.01401 (ICLR 2018; https://iclr.cc/Conferences/2018/Schedule)
+@inproceedings{binkowski2018demystifying,
+  author    = {Bi{\'n}kowski, Miko{\l}aj and Sutherland, Danica J. and Arbel, Michael and Gretton, Arthur},
+  title     = {Demystifying {MMD} {GANs}},
+  booktitle = {6th International Conference on Learning Representations (ICLR)},
+  year      = {2018},
+  note      = {arXiv:1801.01401}
+}
+
+% Verified: https://doi.org/10.1016/j.cviu.2018.10.009
+@article{borji2019pros,
+  author  = {Borji, Ali},
+  title   = {Pros and Cons of {GAN} Evaluation Measures},
+  journal = {Computer Vision and Image Understanding},
+  volume  = {179},
+  pages   = {41--65},
+  year    = {2019},
+  doi     = {10.1016/j.cviu.2018.10.009}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2018/hash/e46de7e1bcaaced9a54f1e9d0d2f800d-Abstract.html
+@inproceedings{lucic2018gans,
+  author    = {Lucic, Mario and Kurach, Karol and Michalski, Marcin and Gelly, Sylvain and Bousquet, Olivier},
+  title     = {Are {GANs} Created Equal? A Large-Scale Study},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {31},
+  year      = {2018},
+  publisher = {Curran Associates, Inc.}
+}
+
+% =====================================================================
+% Hyperparameter optimisation
+% =====================================================================
+
+% Verified: https://doi.org/10.1145/3292500.3330701
+@inproceedings{akiba2019optuna,
+  author    = {Akiba, Takuya and Sano, Shotaro and Yanase, Toshihiko and Ohta, Takeru and Koyama, Masanori},
+  title     = {{Optuna}: A Next-Generation Hyperparameter Optimization Framework},
+  booktitle = {Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  pages     = {2623--2631},
+  year      = {2019},
+  publisher = {ACM},
+  doi       = {10.1145/3292500.3330701}
+}
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2011/hash/86e8f7ab32cfd12577bc2619bc635690-Abstract.html
+@inproceedings{bergstra2011algorithms,
+  author    = {Bergstra, James and Bardenet, R{\'e}mi and Bengio, Yoshua and K{\'e}gl, Bal{\'a}zs},
+  title     = {Algorithms for Hyper-Parameter Optimization},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {24},
+  year      = {2011},
+  publisher = {Curran Associates, Inc.}
+}
+
+% Verified: https://jmlr.org/papers/v13/bergstra12a.html
+@article{bergstra2012random,
+  author  = {Bergstra, James and Bengio, Yoshua},
+  title   = {Random Search for Hyper-Parameter Optimization},
+  journal = {Journal of Machine Learning Research},
+  volume  = {13},
+  number  = {10},
+  pages   = {281--305},
+  year    = {2012}
+}
+
+% Verified: https://arxiv.org/abs/2304.11127
+@misc{watanabe2023tree,
+  author = {Watanabe, Shuhei},
+  title  = {Tree-Structured {Parzen} Estimator: Understanding Its Algorithm Components and Their Roles for Better Empirical Performance},
+  year   = {2023},
+  eprint = {2304.11127},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG}
+}
+
+% Verified: https://doi.org/10.1145/3097983.3098043
+@inproceedings{golovin2017google,
+  author    = {Golovin, Daniel and Solnik, Benjamin and Moitra, Subhodeep and Kochanski, Greg and Karro, John and Sculley, D.},
+  title     = {{Google Vizier}: A Service for Black-Box Optimization},
+  booktitle = {Proceedings of the 23rd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+  pages     = {1487--1495},
+  year      = {2017},
+  publisher = {ACM},
+  doi       = {10.1145/3097983.3098043}
+}
+
+% Verified: https://proceedings.mlr.press/v51/jamieson16.html
+@inproceedings{jamieson2016non,
+  author    = {Jamieson, Kevin and Talwalkar, Ameet},
+  title     = {Non-stochastic Best Arm Identification and Hyperparameter Optimization},
+  booktitle = {Proceedings of the 19th International Conference on Artificial Intelligence and Statistics (AISTATS)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {51},
+  pages     = {240--248},
+  year      = {2016},
+  publisher = {PMLR}
+}
+
+% Verified: https://jmlr.org/papers/v18/16-558.html
+@article{li2018hyperband,
+  author  = {Li, Lisha and Jamieson, Kevin and DeSalvo, Giulia and Rostamizadeh, Afshin and Talwalkar, Ameet},
+  title   = {Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization},
+  journal = {Journal of Machine Learning Research},
+  volume  = {18},
+  number  = {185},
+  pages   = {1--52},
+  year    = {2018}
+}
+
+% Verified: https://arxiv.org/abs/1810.05934 (journal_ref: Conference on Machine Learning and Systems 2020)
+@inproceedings{li2020system,
+  author    = {Li, Liam and Jamieson, Kevin and Rostamizadeh, Afshin and Gonina, Ekaterina and Hardt, Moritz and Recht, Benjamin and Talwalkar, Ameet},
+  title     = {A System for Massively Parallel Hyperparameter Tuning},
+  booktitle = {Proceedings of Machine Learning and Systems (MLSys)},
+  year      = {2020},
+  note      = {arXiv:1810.05934}
+}
+
+% =====================================================================
+% Frameworks and training infrastructure
+% =====================================================================
+
+% Verified: https://proceedings.neurips.cc/paper_files/paper/2019/hash/bdbca288fee7f92f2bfa9f7012727740-Abstract.html
+@inproceedings{paszke2019pytorch,
+  author    = {Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and Desmaison, Alban and K{\"o}pf, Andreas and Yang, Edward and DeVito, Zachary and Raison, Martin and Tejani, Alykhan and Chilamkurthy, Sasank and Steiner, Benoit and Fang, Lu and Bai, Junjie and Chintala, Soumith},
+  title     = {{PyTorch}: An Imperative Style, High-Performance Deep Learning Library},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {32},
+  year      = {2019},
+  publisher = {Curran Associates, Inc.}
+}
+
+% Verified: https://arxiv.org/abs/1412.6980 (ICLR 2015; https://iclr.cc/archive/www/doku.php%3Fid=iclr2015:accepted-main.html)
+@inproceedings{kingma2015adam,
+  author    = {Kingma, Diederik P. and Ba, Jimmy},
+  title     = {{Adam}: A Method for Stochastic Optimization},
+  booktitle = {3rd International Conference on Learning Representations (ICLR)},
+  year      = {2015},
+  note      = {arXiv:1412.6980}
+}
+
+% Verified: https://arxiv.org/abs/1711.05101 (ICLR 2019; https://iclr.cc/Conferences/2019/Schedule)
+@inproceedings{loshchilov2019decoupled,
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  title     = {Decoupled Weight Decay Regularization},
+  booktitle = {7th International Conference on Learning Representations (ICLR)},
+  year      = {2019},
+  note      = {arXiv:1711.05101}
+}
+
+% Verified: https://arxiv.org/abs/1710.03740 (ICLR 2018; https://iclr.cc/Conferences/2018/Schedule)
+@inproceedings{micikevicius2018mixed,
+  author    = {Micikevicius, Paulius and Narang, Sharan and Alben, Jonah and Diamos, Gregory and Elsen, Erich and Garcia, David and Ginsburg, Boris and Houston, Michael and Kuchaiev, Oleksii and Venkatesh, Ganesh and Wu, Hao},
+  title     = {Mixed Precision Training},
+  booktitle = {6th International Conference on Learning Representations (ICLR)},
+  year      = {2018},
+  note      = {arXiv:1710.03740}
+}
+
+% =====================================================================
+% Official documentation and tools (web references, not papers)
+% =====================================================================
+
+% Verified: https://onnx.ai/
+@misc{onnx,
+  author       = {{ONNX}},
+  title        = {{ONNX}: Open Neural Network Exchange},
+  howpublished = {\url{https://onnx.ai/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://onnxruntime.ai/docs/
+@misc{onnxruntime,
+  author       = {{ONNX Runtime}},
+  title        = {{ONNX Runtime} Documentation},
+  howpublished = {\url{https://onnxruntime.ai/docs/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://docs.pytorch.org/docs/stable/onnx.html
+@misc{pytorchonnx,
+  author       = {{PyTorch}},
+  title        = {{torch.onnx} --- {PyTorch} Documentation},
+  howpublished = {\url{https://docs.pytorch.org/docs/stable/onnx.html}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://fastapi.tiangolo.com/
+@misc{fastapi,
+  author       = {Ram{\'i}rez, Sebasti{\'a}n},
+  title        = {{FastAPI} Documentation},
+  howpublished = {\url{https://fastapi.tiangolo.com/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://docs.docker.com/compose/
+@misc{dockercompose,
+  author       = {{Docker, Inc.}},
+  title        = {{Docker Compose} Documentation},
+  howpublished = {\url{https://docs.docker.com/compose/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://react.dev/
+@misc{react,
+  author       = {{Meta Open Source}},
+  title        = {{React}: The Library for Web and Native User Interfaces},
+  howpublished = {\url{https://react.dev/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://tailwindcss.com/
+@misc{tailwind,
+  author       = {{Tailwind Labs}},
+  title        = {{Tailwind CSS}},
+  howpublished = {\url{https://tailwindcss.com/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://stitch.withgoogle.com/
+@misc{stitch,
+  author       = {{Google}},
+  title        = {{Stitch}: Design with {AI}},
+  howpublished = {\url{https://stitch.withgoogle.com/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://wandb.ai/site/
+@misc{wandb,
+  author       = {{Weights \& Biases}},
+  title        = {{Weights \& Biases}: The {AI} Developer Platform},
+  howpublished = {\url{https://wandb.ai/site/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://colab.research.google.com/
+@misc{colab,
+  author       = {{Google}},
+  title        = {{Google Colaboratory}},
+  howpublished = {\url{https://colab.research.google.com/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://www.nvidia.com/en-us/data-center/tesla-t4/
+@misc{nvidiat4,
+  author       = {{NVIDIA}},
+  title        = {{NVIDIA} {T4} Tensor Core {GPU}},
+  howpublished = {\url{https://www.nvidia.com/en-us/data-center/tesla-t4/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://optuna.org/
+@misc{optunadocs,
+  author       = {{Optuna}},
+  title        = {{Optuna}: A Hyperparameter Optimization Framework --- Documentation},
+  howpublished = {\url{https://optuna.readthedocs.io/en/stable/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://www.robots.ox.ac.uk/~vgg/data/pets/
+@misc{petsdata,
+  author       = {{Visual Geometry Group, University of Oxford}},
+  title        = {The {Oxford-IIIT} Pet Dataset},
+  howpublished = {\url{https://www.robots.ox.ac.uk/~vgg/data/pets/}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% Verified: https://github.com/DengPingFan/FS2K
+@misc{fs2kdata,
+  author       = {Fan, Deng-Ping},
+  title        = {{FS2K}: Facial-Sketch Synthesis Dataset},
+  howpublished = {\url{https://github.com/DengPingFan/FS2K}},
+  year         = {2026},
+  note         = {Accessed 3 October 2026}
+}
+
+% =====================================================================
+% Training recipe details cited in the methodology
+% =====================================================================
+
+% Verified: https://doi.org/10.1109/CVPR.2015.7298664
+@inproceedings{tompson2015efficient,
+  author    = {Tompson, Jonathan and Goroshin, Ross and Jain, Arjun and LeCun, Yann and Bregler, Christoph},
+  title     = {Efficient Object Localization Using Convolutional Networks},
+  booktitle = {2015 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {648--656},
+  year      = {2015},
+  doi       = {10.1109/CVPR.2015.7298664}
+}
+
+% Verified: https://arxiv.org/abs/1706.02677
+@misc{goyal2017accurate,
+  author = {Goyal, Priya and Doll{\'a}r, Piotr and Girshick, Ross and Noordhuis, Pieter and Wesolowski, Lukasz and Kyrola, Aapo and Tulloch, Andrew and Jia, Yangqing and He, Kaiming},
+  title  = {Accurate, Large Minibatch {SGD}: Training {ImageNet} in 1 Hour},
+  year   = {2017},
+  eprint = {1706.02677},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV}
+}
+
+% Verified: https://arxiv.org/abs/1608.03983 (ICLR 2017; https://iclr.cc/archive/www/doku.php%3Fid=iclr2017:conference_posters.html)
+@inproceedings{loshchilov2017sgdr,
+  author    = {Loshchilov, Ilya and Hutter, Frank},
+  title     = {{SGDR}: Stochastic Gradient Descent with Warm Restarts},
+  booktitle = {5th International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+  note      = {arXiv:1608.03983}
+}
+
+% Verified: https://doi.org/10.1109/CVPR.2019.00065
+@inproceedings{he2019bag,
+  author    = {He, Tong and Zhang, Zhi and Zhang, Hang and Zhang, Zhongyue and Xie, Junyuan and Li, Mu},
+  title     = {Bag of Tricks for Image Classification with Convolutional Neural Networks},
+  booktitle = {2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {558--567},
+  year      = {2019},
+  doi       = {10.1109/CVPR.2019.00065}
+}
+
+% Verified: https://doi.org/10.1109/ICCV.2019.00502
+@inproceedings{he2019rethinking,
+  author    = {He, Kaiming and Girshick, Ross and Doll{\'a}r, Piotr},
+  title     = {Rethinking {ImageNet} Pre-Training},
+  booktitle = {2019 IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages     = {4917--4926},
+  year      = {2019},
+  doi       = {10.1109/ICCV.2019.00502}
+}
+
+% Verified: https://doi.org/10.1080/01621459.1927.10502953
+@article{wilson1927probable,
+  author  = {Wilson, Edwin B.},
+  title   = {Probable Inference, the Law of Succession, and Statistical Inference},
+  journal = {Journal of the American Statistical Association},
+  volume  = {22},
+  number  = {158},
+  pages   = {209--212},
+  year    = {1927},
+  doi     = {10.1080/01621459.1927.10502953}
+}
+
+% Verified: https://doi.org/10.1109/ICPR.2000.903548
+@inproceedings{pech2000diatom,
+  author    = {Pech-Pacheco, J. L. and Crist{\'o}bal, G. and Chamorro-Mart{\'\i}nez, J. and Fern{\'a}ndez-Valdivia, J.},
+  title     = {Diatom Autofocusing in Brightfield Microscopy: A Comparative Study},
+  booktitle = {Proceedings 15th International Conference on Pattern Recognition (ICPR)},
+  volume    = {3},
+  pages     = {314--317},
+  year      = {2000},
+  doi       = {10.1109/ICPR.2000.903548}
+}
+
+% =====================================================================
+% Task 4: further conditioning and GAN references
+% =====================================================================
+
+% Verified: https://arxiv.org/abs/1607.08022
+@misc{ulyanov2016instance,
+  author = {Ulyanov, Dmitry and Vedaldi, Andrea and Lempitsky, Victor},
+  title  = {Instance Normalization: The Missing Ingredient for Fast Stylization},
+  year   = {2016},
+  eprint = {1607.08022},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV}
+}
+
+% Verified: https://doi.org/10.23915/distill.00011
+@article{dumoulin2018featurewise,
+  author  = {Dumoulin, Vincent and Perez, Ethan and Schucher, Nathan and Strub, Florian and de Vries, Harm and Courville, Aaron and Bengio, Yoshua},
+  title   = {Feature-wise Transformations},
+  journal = {Distill},
+  volume  = {3},
+  number  = {7},
+  year    = {2018},
+  doi     = {10.23915/distill.00011}
+}
+
+% Verified: https://arxiv.org/abs/1809.11096 (ICLR 2019; https://iclr.cc/Conferences/2019/Schedule)
+@inproceedings{brock2019large,
+  author    = {Brock, Andrew and Donahue, Jeff and Simonyan, Karen},
+  title     = {Large Scale {GAN} Training for High Fidelity Natural Image Synthesis},
+  booktitle = {7th International Conference on Learning Representations (ICLR)},
+  year      = {2019},
+  note      = {arXiv:1809.11096}
+}
+
+% Verified: https://doi.org/10.1109/CVPR42600.2020.00821
+@inproceedings{choi2020starganv2,
+  author    = {Choi, Yunjey and Uh, Youngjung and Yoo, Jaejun and Ha, Jung-Woo},
+  title     = {{StarGAN} v2: Diverse Image Synthesis for Multiple Domains},
+  booktitle = {2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages     = {8185--8194},
+  year      = {2020},
+  doi       = {10.1109/CVPR42600.2020.00821}
+}
+
+% Verified: https://arxiv.org/abs/1802.05957 (ICLR 2018; https://iclr.cc/Conferences/2018/Schedule)
+@inproceedings{miyato2018spectral,
+  author    = {Miyato, Takeru and Kataoka, Toshiki and Koyama, Masanori and Yoshida, Yuichi},
+  title     = {Spectral Normalization for Generative Adversarial Networks},
+  booktitle = {6th International Conference on Learning Representations (ICLR)},
+  year      = {2018},
+  note      = {arXiv:1802.05957}
+}
+
+% Verified: https://proceedings.mlr.press/v48/reed16.html
+@inproceedings{reed2016generative,
+  author    = {Reed, Scott and Akata, Zeynep and Yan, Xinchen and Logeswaran, Lajanugen and Schiele, Bernt and Lee, Honglak},
+  title     = {Generative Adversarial Text to Image Synthesis},
+  booktitle = {Proceedings of the 33rd International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {48},
+  pages     = {1060--1069},
+  year      = {2016},
+  publisher = {PMLR}
+}
+
+% Verified: https://arxiv.org/abs/1411.7923
+@misc{yi2014learning,
+  author = {Yi, Dong and Lei, Zhen and Liao, Shengcai and Li, Stan Z.},
+  title  = {Learning Face Representation from Scratch},
+  year   = {2014},
+  eprint = {1411.7923},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV}
+}
