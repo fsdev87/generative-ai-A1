@@ -81,3 +81,40 @@ def psnr(x: np.ndarray, reference: np.ndarray) -> float:
     """PSNR in dB for images in [0, 1], capped at 100 dB as in src.common.metrics.psnr."""
     mse = float(np.mean((np.clip(x, 0.0, 1.0).astype(np.float64) - reference) ** 2))
     return 100.0 if mse <= 1e-10 else min(100.0, 10.0 * math.log10(1.0 / mse))
+
+
+def _gaussian_window(size: int, sigma: float) -> np.ndarray:
+    """1-D normalised Gaussian; the 2-D window of src.common.losses is its outer product."""
+    t = np.arange(size, dtype=np.float64) - (size - 1) / 2.0
+    g = np.exp(-(t**2) / (2.0 * sigma**2))
+    return g / g.sum()
+
+
+def _filter_valid(image: np.ndarray, g: np.ndarray) -> np.ndarray:
+    """Separable Gaussian filter of an (H, W, C) image over the valid region only (no padding),
+    like F.conv2d without padding: output (H - k + 1, W - k + 1, C)."""
+    k = len(g)
+    height, width = image.shape[:2]
+    rows = sum(g[i] * image[i:height - k + 1 + i] for i in range(k))
+    return sum(g[j] * rows[:, j:width - k + 1 + j] for j in range(k))
+
+
+def ssim(x: np.ndarray, reference: np.ndarray, data_range: float = 1.0, window_size: int = 11,
+         sigma: float = 1.5, k1: float = 0.01, k2: float = 0.03) -> float:
+    """SSIM (Wang et al., 2004) of an image against the reference, both (H, W, C) or (H, W) in
+    [0, 1]. Same definition as src.common.losses.ssim (no torch here): 11x11 Gaussian window with
+    sigma 1.5, valid region only, mean over channels and positions. 1.0 for identical images."""
+    x = np.clip(x, 0.0, 1.0).astype(np.float64)
+    y = np.asarray(reference, dtype=np.float64)
+    if x.ndim == 2:
+        x, y = x[..., None], y[..., None]
+    if x.shape != y.shape or min(x.shape[:2]) < window_size:
+        raise ValueError(f"ssim needs two images of the same size, at least {window_size} pixels")
+    g = _gaussian_window(window_size, sigma)
+    mu_x, mu_y = _filter_valid(x, g), _filter_valid(y, g)
+    var_x = _filter_valid(x * x, g) - mu_x**2
+    var_y = _filter_valid(y * y, g) - mu_y**2
+    cov = _filter_valid(x * y, g) - mu_x * mu_y
+    c1, c2 = (k1 * data_range) ** 2, (k2 * data_range) ** 2
+    ssim_map = ((2 * mu_x * mu_y + c1) * (2 * cov + c2)) / ((mu_x**2 + mu_y**2 + c1) * (var_x + var_y + c2))
+    return float(ssim_map.mean())

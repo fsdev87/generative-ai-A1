@@ -49,7 +49,11 @@ describe("Universal Restoration", () => {
     expect(await screen.findByText("Gaussian blur · kernel 5 · σ 1.5")).toBeInTheDocument();
     expect(screen.getByText("udae.onnx")).toBeInTheDocument();
     expect(screen.getByText("6.20 ms")).toBeInTheDocument();
+    // PSNR and SSIM of the model input and of the output, as in the Stitch panel captions
+    expect(screen.getByText("PSNR: 27.41 dB")).toBeInTheDocument();
+    expect(screen.getByText("SSIM: 0.811")).toBeInTheDocument();
     expect(screen.getByText("PSNR: 30.02 dB")).toBeInTheDocument();
+    expect(screen.getByText("SSIM: 0.886")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Clean original image before the corruption" })).toHaveAttribute("src", PNG);
     const download = screen.getByRole("link", { name: "Download result" });
     expect(download).toHaveAttribute("download", "pets-abyssinian_12_restored-universal.png");
@@ -181,6 +185,7 @@ describe("Hard-Routed Restoration", () => {
     expect(screen.getByText("Misrouted")).toBeInTheDocument(); // predicted clean, true salt
     expect(screen.getByText("classifier.onnx (no expert)")).toBeInTheDocument();
     expect(screen.getByText("Inference: 2.20 ms")).toBeInTheDocument();
+    expect(screen.getByText("SSIM: 0.654")).toBeInTheDocument();
   });
 });
 
@@ -201,6 +206,8 @@ describe("Soft Mixture-of-Experts Restoration", () => {
     expect(screen.getByText("Softmax gate weights, sum = 100.0%")).toBeInTheDocument();
     // No reference for an upload used as is.
     expect(screen.getByText(/No original: the image was restored as uploaded/)).toBeInTheDocument();
+    expect(screen.queryByText(/^SSIM:/)).toBeNull();
+    expect(screen.getAllByText("PSNR / SSIM need the original")).toHaveLength(2);
   });
 });
 

@@ -30,9 +30,13 @@ export interface CorruptionSettings {
   spec: Record<string, unknown>;
 }
 
+/** Quality against the clean reference; only when the server applied the corruption. */
 export interface Metrics {
   psnr_input_db: number;
   psnr_output_db: number;
+  /** SSIM as in training (src.common.losses.ssim); 1 = identical. */
+  ssim_input: number;
+  ssim_output: number;
 }
 
 export interface Timing {

@@ -50,6 +50,11 @@ export function formatDb(db: number): string {
   return db >= 100 ? "100 dB (identical)" : `${db.toFixed(2)} dB`;
 }
 
+/** SSIM with three decimals, as in the Stitch panels ("SSIM: 0.962"). */
+export function formatSsim(value: number): string {
+  return value.toFixed(3);
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

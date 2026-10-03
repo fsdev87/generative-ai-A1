@@ -102,8 +102,13 @@ uploaded image whose true condition is unknown.
 | `rects` | Occlusion rectangles `[y, x, height, width]` on the 128x128 image (for overlays), else `null` |
 | `spec` | Exact spec passed to `apply_spec` (manifest format; salt's `spec.seed` is its noise seed) |
 
-`metrics` (only when the server applied the corruption): `{"psnr_input_db", "psnr_output_db"}`,
-PSNR against the clean reference, capped at 100 dB (identical images).
+`metrics` (only when the server applied the corruption): quality of the model input and of the
+output against the clean reference, computed on the same [0, 1] images.
+
+| Field | Description |
+|---|---|
+| `psnr_input_db`, `psnr_output_db` | PSNR in dB, capped at 100 dB (identical images) |
+| `ssim_input`, `ssim_output` | SSIM, 1 for identical images. Same definition as training (`src.common.losses.ssim`): 11x11 Gaussian window, sigma 1.5, K1 0.01, K2 0.03, data range 1, valid region only (no padding), mean over channels and positions. Implemented in NumPy (`backend/app/services/images.py`); matches the PyTorch version to about 1e-7 |
 
 `timing`: `inference_ms` = ONNX Runtime `session.run` time of all models used; `total_ms` =
 server time from reading the image to the finished response (decode, preprocessing, corruption,
@@ -237,7 +242,7 @@ curl -F file=@photo.jpg -F corruption=blur -F k=5 -F sigma=1.2 -F seed=7 \
   "corruption": {"type": "blur", "level": "medium", "custom": true, "seed": 7,
                  "params": {"k": 5, "sigma": 1.2}, "rects": null,
                  "spec": {"type": "blur", "k": 5, "sigma": 1.2, "level": "medium"}},
-  "metrics": {"psnr_input_db": 27.41, "psnr_output_db": 30.02},
+  "metrics": {"psnr_input_db": 27.41, "psnr_output_db": 30.02, "ssim_input": 0.8113, "ssim_output": 0.8862},
   "source": {"kind": "upload", "name": "photo.jpg", "format": "JPEG", "width": 400, "height": 300},
   "model": "udae.onnx",
   "timing": {"inference_ms": 6.2, "total_ms": 18.3}
@@ -266,7 +271,7 @@ curl -F sample_id=pets-abyssinian_12 -F corruption=salt -F level=high -F seed=1 
   "reference": "data:image/png;base64,...",
   "corruption": {"type": "salt", "level": "high", "custom": false, "seed": 1, "params": {"p": 0.15},
                  "rects": null, "spec": {"type": "salt", "p": 0.15, "seed": 1016164991, "level": "high"}},
-  "metrics": {"psnr_input_db": 12.98, "psnr_output_db": 21.25},
+  "metrics": {"psnr_input_db": 12.98, "psnr_output_db": 21.25, "ssim_input": 0.2104, "ssim_output": 0.6537},
   "source": {"kind": "sample", "name": "pets-abyssinian_12", "format": "JPEG", "width": 500, "height": 375},
   "routing_mode": "oracle",
   "probabilities": {"clean": 0.691, "salt": 0.1627, "blur": 0.0551, "occlusion": 0.0912},

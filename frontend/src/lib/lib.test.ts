@@ -3,7 +3,7 @@ import type { CorruptionSettings } from "../api/types";
 import { parseSeed } from "../workspaces/restoration/useRestorationForm";
 import { downloadFilename, isPngDataUrl } from "./download";
 import { absoluteErrorMap } from "./errorMap";
-import { argmax, describeCorruption, describeSeverity, entropy, formatDb, formatPercent, shortCorruption } from "./format";
+import { argmax, describeCorruption, describeSeverity, entropy, formatDb, formatPercent, formatSsim, shortCorruption } from "./format";
 import { workspaceForPath } from "./routes";
 
 const blur: CorruptionSettings = {
@@ -44,6 +44,8 @@ describe("format", () => {
     expect(formatPercent(0.891)).toBe("89.1%");
     expect(formatDb(27.414)).toBe("27.41 dB");
     expect(formatDb(100)).toMatch(/identical/);
+    expect(formatSsim(0.96249)).toBe("0.962");
+    expect(formatSsim(1)).toBe("1.000");
     const p = { clean: 0.1, salt: 0.6, blur: 0.2, occlusion: 0.1 };
     expect(argmax(p)).toBe("salt");
     expect(entropy({ clean: 0.25, salt: 0.25, blur: 0.25, occlusion: 0.25 })).toBeCloseTo(Math.log(4));

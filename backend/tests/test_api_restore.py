@@ -31,6 +31,7 @@ def test_server_side_corruption(client, endpoint):
                                                   "level": "medium", "seed": 3}).json()
     assert body["input"] == corrupted["image"] and body["reference"] == corrupted["clean"]
     assert 0 < body["metrics"]["psnr_input_db"] <= 100
+    assert -1 <= body["metrics"]["ssim_input"] < 1 and -1 <= body["metrics"]["ssim_output"] <= 1
     assert body["timing"]["total_ms"] >= body["timing"]["inference_ms"] > 0
     assert body["source"]["kind"] == "sample"
 
@@ -94,6 +95,7 @@ def test_hard_oracle_routing_uses_the_true_class(client, ctype):
     if ctype == "clean":
         assert body["output"] == body["input"] == body["reference"]
         assert body["metrics"]["psnr_output_db"] == 100
+        assert body["metrics"]["ssim_input"] == body["metrics"]["ssim_output"] == pytest.approx(1.0)
 
 
 def test_hard_oracle_differs_from_prediction(client):

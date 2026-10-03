@@ -18,7 +18,7 @@ from ..schemas import (BranchImages, ClassScores, CorruptionSettings, HardRespon
                        MoEResponse, RoutingMode, Timing, UniversalResponse, error_responses)
 from ..services import inference
 from ..services.corruption import CLASSES, AppliedCorruption, CorruptionParams, build_spec, corrupt
-from ..services.images import psnr, to_data_url
+from ..services.images import psnr, ssim, to_data_url
 from ..services.models import ModelRegistry
 from ..services.preprocessing import restoration_input
 
@@ -52,8 +52,9 @@ def result_fields(model_input: ModelInput, output: np.ndarray, source: InputImag
     if model_input.applied is not None:
         fields["reference"] = to_data_url(model_input.reference)
         fields["corruption"] = CorruptionSettings(**model_input.applied.describe())
-        fields["metrics"] = Metrics(psnr_input_db=psnr(model_input.x, model_input.reference),
-                                    psnr_output_db=psnr(output, model_input.reference))
+        x, reference = model_input.x, model_input.reference
+        fields["metrics"] = Metrics(psnr_input_db=psnr(x, reference), psnr_output_db=psnr(output, reference),
+                                    ssim_input=ssim(x, reference), ssim_output=ssim(output, reference))
     return fields
 
 

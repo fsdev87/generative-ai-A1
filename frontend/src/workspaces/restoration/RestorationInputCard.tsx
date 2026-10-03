@@ -39,11 +39,11 @@ function paramSummary(params: Record<string, number> | null): string {
 function CorruptionHint({ choice, sourceKind }: { choice: CorruptionChoice; sourceKind: "upload" | "sample" | null }) {
   let text: string;
   if (choice !== "none") {
-    text = "The server applies this corruption to the clean image, so the original is shown and PSNR is measured.";
+    text = "The server applies this corruption to the clean image, so the original is shown and PSNR / SSIM are measured.";
   } else if (sourceKind === "upload") {
     text = "None: the upload is restored as is (e.g. an already corrupted photo). Its true condition is unknown, so there is no original to compare with.";
   } else {
-    text = "None: the clean sample is sent as clean, so PSNR and oracle routing are available.";
+    text = "None: the clean sample is sent as clean, so PSNR / SSIM and oracle routing are available.";
   }
   return <p className="font-body-sm text-body-sm text-on-surface-variant">{text}</p>;
 }

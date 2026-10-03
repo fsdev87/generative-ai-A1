@@ -5,7 +5,7 @@ import { Icon } from "../../components/Icon";
 import { ImagePanel } from "../../components/ImagePanel";
 import { useBackend } from "../../hooks/backend";
 import type { SelectedImage } from "../../hooks/useSelectedImage";
-import { describeSeverity, formatDb, shortCorruption } from "../../lib/format";
+import { formatDb, formatSsim, shortCorruption } from "../../lib/format";
 import type { RestorationView } from "./useRestorationRun";
 
 function inputBadge(corruption: CorruptionSettings | null): { text: string; tone: "error" | "neutral" } {
@@ -70,10 +70,14 @@ export function RestorationPanels<T extends RestorationResult>({
           pixelated
           placeholder=""
           footer={
-            <>
-              <span>{metrics ? `PSNR: ${formatDb(metrics.psnr_input_db)}` : corruption ? "" : "PSNR needs the original"}</span>
-              {corruption && corruption.type !== "clean" && <span>{describeSeverity(corruption)}</span>}
-            </>
+            metrics ? (
+              <>
+                <span>PSNR: {formatDb(metrics.psnr_input_db)}</span>
+                <span>SSIM: {formatSsim(metrics.ssim_input)}</span>
+              </>
+            ) : (
+              <span>{result ? "PSNR / SSIM need the original" : "Preview: PSNR / SSIM after Restore"}</span>
+            )
           }
         />
       ) : (
@@ -113,8 +117,10 @@ export function RestorationPanels<T extends RestorationResult>({
         footer={
           result ? (
             <>
-              <span className="text-primary font-semibold">{metrics ? `PSNR: ${formatDb(metrics.psnr_output_db)}` : "PSNR needs the original"}</span>
-              {metrics && <span className="text-primary font-semibold">Δ {gain(metrics)}</span>}
+              <span className="text-primary font-semibold">
+                {metrics ? `PSNR: ${formatDb(metrics.psnr_output_db)}` : "PSNR / SSIM need the original"}
+              </span>
+              {metrics && <span className="text-primary font-semibold">SSIM: {formatSsim(metrics.ssim_output)}</span>}
             </>
           ) : undefined
         }

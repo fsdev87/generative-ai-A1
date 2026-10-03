@@ -53,6 +53,10 @@ class Metrics(BaseModel):
 
     psnr_input_db: float = Field(description="PSNR of the model input against the clean reference (max 100)")
     psnr_output_db: float = Field(description="PSNR of the output against the clean reference (max 100)")
+    ssim_input: float = Field(
+        description="SSIM of the model input against the clean reference (1 = identical); same definition as "
+                    "src.common.losses.ssim: 11x11 Gaussian window, sigma 1.5, valid region, mean over channels")
+    ssim_output: float = Field(description="SSIM of the output against the clean reference (1 = identical)")
 
 
 class Timing(BaseModel):

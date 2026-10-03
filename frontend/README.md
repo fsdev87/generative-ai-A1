@@ -103,5 +103,7 @@ from the API or removed.
   the seed when one is entered. "Preview corruption" calls `/api/corrupt` and keeps the returned
   seed, so the next restore uses exactly the previewed image.
 - Oracle routing is offered only when the server applies the corruption.
+- PSNR and SSIM (from `metrics`, against the clean original) are shown under the Model input and
+  Restored output panels, as in the Stitch design; they exist only when the server applied the corruption.
 - Errors are shown with the backend's `detail` text (400, 404, 413, 415, 422, 500, 503); files
   larger than the limit from `/api/options` are rejected before uploading.
