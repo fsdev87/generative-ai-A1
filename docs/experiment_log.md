@@ -74,9 +74,27 @@ Hardware for every run: Google Colab free tier, NVIDIA Tesla T4, mixed precision
    identity bypass returns correctly classified clean images exactly — a direct point for the
    cross-task comparison.
 
-### Test evaluation
+### Test evaluation (official test manifest, 36,690 entries; `best.pt`, epoch 59)
 
-*Pending (cell 6).*
+- All corrupted test inputs (salt + blur + occlusion, all severities, 33,021 entries):
+  **PSNR 23.82 dB, SSIM 0.7845**. Per type × severity and the baseline comparison:
+  `outputs/task1/tables/comparison_by_type{,_level}.csv` — *to be copied here*.
+- **Salt-and-pepper impulse survival: 0.0023** — of the pixels hit by an impulse, 0.23 % are still
+  closer to the impulse than to the clean value after restoration (identity = 1, perfect = 0).
+- **Clean detail ratio: 0.498** — on clean inputs the output has about half the high-frequency
+  (Laplacian) energy of the clean image (1 = equally detailed).
+
+**Interpretations for the report**
+
+1. The two diagnostics quantify both sides of the bottleneck: no shortcut for the corruption
+   (99.8 % of impulses removed) and a real price in detail (half the fine texture lost even when
+   nothing needed fixing). Limited skips would trade the second for the first — that is what the
+   ablation (`--skip-resolutions 16/32/128`) measures; not run yet (optional, GPU quota).
+
+### ONNX export
+
+- `udae.onnx` + model card `udae.json`; parity with PyTorch: **max |diff| 8.64e-7** on 64 real test
+  inputs (single image 3.58e-7), far below the 1e-4 threshold.
 
 ---
 
