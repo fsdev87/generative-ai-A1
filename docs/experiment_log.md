@@ -133,6 +133,10 @@ clean photos (to be confirmed by the blur-strength analysis in the classifier ev
 
 - Early trials: trial 1 mean val score 0.6045 (lr 1.86e-4, batch 64, base 48, latent 16×16×32,
   alpha 0.68).
+- First session stopped manually about 11 minutes in (while the checkpoint bug was being fixed):
+  trials 0–2 finished and were synced to Drive; trial 3 was interrupted and is recorded as FAIL
+  (KeyboardInterrupt). The study resumes from the 3 finished trials; the final summary's one
+  failed trial is this interruption, not an error in the code.
 
 ## Task 3 — Soft mixture of experts
 
