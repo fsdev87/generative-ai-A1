@@ -14,3 +14,14 @@ Rules:
 - Keep them small (a few hundred pixels, < 200 KB each): they are copied into the Docker image.
 - The folder is scanned when the backend starts; restart it after adding images.
 - Check the dataset licences before redistributing images in the repository.
+
+## Attribution
+
+`pets/` holds eight images from the **official test split** of the Oxford-IIIT Pet Dataset
+(Abyssinian_201, Bengal_192, Persian_21, Siamese_209, beagle_195, german_shorthaired_191,
+pomeranian_191, samoyed_191), downscaled to at most 384 px. O. M. Parkhi, A. Vedaldi,
+A. Zisserman and C. V. Jawahar, "Cats and Dogs", CVPR 2012 —
+<https://www.robots.ox.ac.uk/~vgg/data/pets/>, licensed CC BY-SA 4.0.
+
+`faces/` is intentionally empty: FS2K's photos are not redistributed here. The Face-to-Sketch
+Generator works with uploads and the webcam.
