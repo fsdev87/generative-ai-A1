@@ -18,15 +18,15 @@ Estimated total GPU time ≈ 10 h, realistically spread over several days of fre
 | Backend | FastAPI, all required endpoints, upload validation, ONNX registry, dummy-model generator, Docker image, `docs/api.md`, 88 tests |
 | Task 2 | Classifier + 3 specialists + hard routing (oracle/predicted), Optuna studies, evaluation incl. misrouting analysis, ONNX export, notebook, 13 tests |
 | Task 4 stage 1 | FS2K pairing/split/cache, preprocessing (matches the backend exactly), U-Net generator with FiLM style conditioning, projection PatchGAN, 23 tests |
+| Task 1 | Universal autoencoder, Optuna, evaluation with classical baselines, limited-skip ablation, ONNX export, notebook, 18 tests |
+| Task 3 | Soft MoE from Task 2 checkpoints, warm-up + joint fine-tuning, collapse-aware Optuna, gating analysis, cross-task comparison, ONNX export, notebook, 17 tests |
 | Colab setup | `notebooks/colab_setup.ipynb`, Drive layout `MyDrive/GenAI_A1/{archives,cache,checkpoints,optuna,onnx,outputs}` |
 
 ## In progress
 
 | Piece | Remaining |
 |---|---|
-| Task 1 | Code, notebook, notes and tests written; awaiting my review + commit |
-| Task 3 | Modules and tests written; `notebooks/task3_colab.ipynb` and `docs/task3_notes.md` outstanding |
-| Task 4 stage 2 | train / optuna_search / evaluate / export_onnx, notebook, tests, notes section |
+| Task 4 stage 2 | train / optuna_search / evaluate written; export_onnx, notebook, tests, notes section outstanding |
 | Report | `docs/research_notes.md`, `report/references.bib`, `report/main.tex`, `report/README.md` |
 
 ## Not started
