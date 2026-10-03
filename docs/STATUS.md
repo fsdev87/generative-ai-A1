@@ -22,6 +22,9 @@ Estimated total GPU time ≈ 10 h, realistically spread over several days of fre
 | Task 3 | Soft MoE from Task 2 checkpoints, warm-up + joint fine-tuning, collapse-aware Optuna, gating analysis, cross-task comparison, ONNX export, notebook, 17 tests |
 | Task 4 stage 2 | cGAN training with separate loss logging, Optuna, test evaluation per style and photo source, generator ONNX export, notebook, 35 tests in total |
 | Report skeleton | `report/main.tex` (IEEE, 18 pages, builds clean), `references.bib` (114 verified entries), `docs/research_notes.md` |
+| Google Stitch design | `design/stitch/` (exported HTML + screenshots of all four workspaces) |
+| Frontend + Docker Compose | React + Tailwind from the Stitch code, real data only, self-hosted fonts; `docker compose up --build`; 54 tests; verified end to end with placeholder models |
+| SSIM in the app | Backend returns SSIM next to PSNR (NumPy, matches training definition to 3.2e-7) |
 | Colab setup | `notebooks/colab_setup.ipynb`, Drive layout `MyDrive/GenAI_A1/{archives,cache,checkpoints,optuna,onnx,outputs}` |
 
 ## In progress
@@ -32,13 +35,11 @@ Nothing; all model code, the backend and the report skeleton are committed.
 
 | Piece | Blocked on |
 |---|---|
-| Google Stitch design | User (prompts in `docs/stitch_prompt.md`); blocks the frontend |
 | Report author block + YouTube link | User (`report/main.tex`, two places) |
 | Optional: LPIPS as a perceptual metric for Task 4 | Decision; the report's abstract placeholder currently mentions it |
-| React + Tailwind frontend | Stitch design + `docs/api.md` |
-| Docker Compose (frontend + backend, one command) | Frontend |
-| Sample images in `backend/app/samples/` | Pick a few pets + faces, check licences |
-| All training runs | Free Colab GPU time |
+| Sample pet images in `backend/app/samples/pets/` | Streaming 8 official test images (in progress); faces left out for licence reasons (upload/webcam instead) |
+| Trained ONNX models in `./models` + download link | Training runs |
+| Training runs | Task 1 running on Colab (Optuna started 2026-10-03); then Task 2, Task 3, Task 4 |
 | Demonstration video (5-7 min, YouTube) | Working app + trained models |
 | AI-use appendix | Report skeleton |
 
@@ -56,9 +57,9 @@ Nothing; all model code, the backend and the report skeleton are committed.
 - [x] W&B tracking (hyperparameters, losses, metrics, checkpoints, visual outputs)
 - [x] ONNX export + PyTorch parity checks for every inference model
 - [x] FastAPI backend with health + the four task endpoints
-- [ ] Google Stitch design, with evidence in the report
-- [ ] React + Tailwind frontend, four workspaces
-- [ ] Docker Compose, one documented command
+- [x] Google Stitch design (evidence in `design/stitch/`; figure still to be added to the report)
+- [x] React + Tailwind frontend, four workspaces
+- [x] Docker Compose, one documented command
 - [ ] IEEE LaTeX report with all required figures/tables and interpretation
 - [ ] GitHub repository with README and execution instructions
 - [ ] 5-7 minute YouTube demonstration video
