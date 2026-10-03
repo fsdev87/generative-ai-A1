@@ -112,6 +112,26 @@ Hardware for every run: Google Colab free tier, NVIDIA Tesla T4, mixed precision
 CNN on this data. The remaining errors are expected among the mildest blurs vs naturally soft
 clean photos (to be confirmed by the blur-strength analysis in the classifier evaluation).
 
+### Final classifier and test evaluation (after the checkpoint fix)
+
+- Final run: best validation macro-F1 **1.0000 at epoch 47** (60-epoch schedule).
+- **Test (36,690 entries): accuracy 0.9989, macro-F1 0.9981, macro-precision 0.9980,
+  macro-recall 0.9982** — about 40 errors in total. Validation (736): 1.0000 on every metric.
+- Error analysis: 0.41 % of clean test images predicted "blur" (≈ 15 images), 0.08 % predicted
+  "occlusion" (≈ 3); only 0.055 % of the *low*-severity blur entries predicted "clean" (≈ 2).
+  Full tables/figures: `outputs/task2/tables`, `outputs/task2/figures`.
+
+**Interpretations for the report**
+
+1. Contrary to the expectation that the mildest blur would be confused with clean photos, the
+   classifier detects even the (3, 0.7) blur level almost perfectly; its dominant error is the
+   reverse — flagging naturally soft clean photos as blurred.
+2. With a near-perfect classifier, predicted routing should almost equal oracle routing: the
+   brief's "classifier errors cause restoration failures" analysis will contain few cases, to be
+   discussed individually.
+3. Task 3's gate is initialised from this classifier, so on the standard test set the soft MoE is
+   likely to route almost one-hot; the mixed-corruption experiment is where soft routing can differ.
+
 ### Incident: quick check contaminated the real checkpoints (found and fixed 2026-10-03)
 
 - Symptom: the classifier evaluation reported test accuracy 0.300, macro-recall exactly 0.250 and
