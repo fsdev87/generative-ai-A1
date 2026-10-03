@@ -80,7 +80,7 @@ def export_all(smoke=False, n_parity=64):
     tables, eval_dir, onnx_dir = get_dir("OUTPUT_DIR", TASK, "tables"), get_dir("OUTPUT_DIR", TASK, "eval"), get_dir("ONNX_DIR")
     clf_metrics = read_json(tables / "classifier_metrics.json", "src.task2.evaluate_classifier")
     routing = read_json(eval_dir / "summary.json", "src.task2.evaluate_routing")
-    classifier, specialists = load_models("cpu")
+    classifier, specialists = load_models("cpu", smoke=smoke)
     images, manifests = load_pets(smoke=smoke)
     paths = checkpoint_paths()
     cards = {}

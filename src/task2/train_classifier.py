@@ -32,7 +32,7 @@ from src.models.classifier import CorruptionClassifier
 
 from .common import (
     TASK, Amp, build_config, classification_metrics, config_diff, confusion_figure,
-    disable_wandb_for_smoke, flat_metrics, guard_smoke_overwrite, log_figure, make_loader, materialize,
+    disable_wandb_for_smoke, flat_metrics, guard_smoke_overwrite, load_resume_state, log_figure, make_loader, materialize,
     memory_format, model_state, new_run_id, param_groups, plain, resolve_workers, setup_device,
     tracked_run, warmup_cosine,
 )
@@ -134,7 +134,8 @@ def train_classifier(config, trial=None, smoke=False, resume=False, data=None):
     ckpt_dir = classifier_dir() if final else None
     state = None
     if final and resume and (ckpt_dir / "last.pt").exists():
-        state = load_checkpoint(ckpt_dir / "last.pt")
+        state = load_resume_state(ckpt_dir / "last.pt", smoke, "classifier")
+    if state is not None:
         diff = config_diff(plain(state["train_config"]), plain(cfg))
         if diff:
             print(f"[classifier] resuming with the checkpoint's config; ignoring differences {diff}")

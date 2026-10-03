@@ -281,7 +281,7 @@ def evaluate(smoke=False, batch_size=128, num_workers=None, harm_db=1.0, n_failu
     disable_wandb_for_smoke(smoke)
     device = setup_device()
     workers = num_workers if num_workers is not None else (2 if device.type == "cuda" else 0)
-    classifier, specialists = load_models(device)
+    classifier, specialists = load_models(device, smoke=smoke)
     images, manifests = load_pets(smoke=smoke)
     dataset = ManifestDataset(images["test"], manifests["test"])
     eval_dir, tables_dir, fig_dir = (get_dir("OUTPUT_DIR", TASK, sub) for sub in ("eval", "tables", "figures"))

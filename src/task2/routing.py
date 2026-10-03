@@ -21,7 +21,7 @@ from src.common.paths import get_dir
 from src.models.autoencoder import ConvAutoencoder
 from src.models.classifier import CorruptionClassifier
 
-from .common import SPECIALIST_TYPES, TASK
+from .common import SPECIALIST_TYPES, TASK, require_real_checkpoint
 
 ROUTING_MODES = ("predicted", "oracle")
 EXPERT_NAMES = ("identity", *SPECIALIST_TYPES)  # route index -> expert, same order as CLASSES
@@ -67,13 +67,18 @@ def checkpoint_paths():
     return paths
 
 
-def load_models(device="cpu"):
-    """Classifier and the three specialists from their best.pt, in eval mode."""
+def load_models(device="cpu", smoke=False):
+    """Classifier and the three specialists from their best.pt, in eval mode.
+
+    Outside smoke mode every checkpoint must come from a real training run (not --smoke).
+    """
     paths = checkpoint_paths()
     missing = [str(p) for p in paths.values() if not Path(p).exists()]
     if missing:
         raise FileNotFoundError("missing Task 2 checkpoints (train the classifier and the specialists first): "
                                 + ", ".join(missing))
+    for path in paths.values():
+        require_real_checkpoint(path, smoke)
     classifier = build_model(CorruptionClassifier, paths["classifier"]).to(device).eval()
     specialists = {t: build_model(ConvAutoencoder, paths[t]).to(device).eval() for t in SPECIALIST_TYPES}
     return classifier, specialists

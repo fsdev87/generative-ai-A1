@@ -37,7 +37,8 @@ from src.data.corruptions import CLASSES, LEVELS, blur_strength
 from src.data.pets import ManifestDataset, load_pets
 from src.models.classifier import CorruptionClassifier
 
-from .common import TASK, classification_metrics, confusion_figure, disable_wandb_for_smoke, save_figure, setup_device
+from .common import (TASK, classification_metrics, confusion_figure, disable_wandb_for_smoke,
+                     require_real_checkpoint, save_figure, setup_device)
 
 DARK_LEVEL = 0.1                      # near-black: every channel <= 0.1 (about 25/255)
 DARK_BINS = [0, 0.05, 0.15, 0.30, 1.0001]
@@ -210,7 +211,8 @@ def blur_figure(table):
         t = table[table["source"] == source].sort_values("blur_strength")
         if t.empty:
             continue
-        yerr = np.vstack([t["p_pred_blur"] - t["ci_low"], t["ci_high"] - t["p_pred_blur"]])
+        # clip: at p = 0 or 1 the interval bound can sit a rounding error past p, and errorbar rejects < 0
+        yerr = np.clip(np.vstack([t["p_pred_blur"] - t["ci_low"], t["ci_high"] - t["p_pred_blur"]]), 0, None)
         ax.errorbar(t["blur_strength"], t["p_pred_blur"], yerr=yerr, lw=2, ms=8, capsize=3, **style)
         ax.plot(t["blur_strength"], t["p_pred_clean"], lw=1.5, ls="--", color=style["color"], alpha=0.8)
     ax.text(1.03, 0.35, "solid: P(pred = blur)\nwith 95% Wilson CI\ndashed: P(pred = clean)\nstrength 0 = clean images",
@@ -318,6 +320,7 @@ def evaluate(smoke=False, num_workers=None, n_examples=16):
     ckpt = get_dir("CKPT_DIR", TASK, "classifier") / "best.pt"
     if not ckpt.exists():
         raise FileNotFoundError(f"{ckpt} not found: train the classifier first (src.task2.train_classifier)")
+    require_real_checkpoint(ckpt, smoke)
     model = build_model(CorruptionClassifier, ckpt).to(device).eval()
     images, manifests = load_pets(smoke=smoke)
     tables, figures = get_dir("OUTPUT_DIR", TASK, "tables"), get_dir("OUTPUT_DIR", TASK, "figures")

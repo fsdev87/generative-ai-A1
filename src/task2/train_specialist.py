@@ -33,7 +33,7 @@ from src.models.autoencoder import ConvAutoencoder
 
 from .common import (
     SPECIALIST_TYPES, TASK, Amp, batches, build_config, config_diff, disable_wandb_for_smoke,
-    guard_smoke_overwrite, make_loader, materialize, memory_format, model_state, new_run_id, param_groups,
+    guard_smoke_overwrite, load_resume_state, make_loader, materialize, memory_format, model_state, new_run_id, param_groups,
     plain, resolve_workers, setup_device, tracked_run, warmup_cosine,
 )
 
@@ -201,7 +201,8 @@ def train_specialist(config, ctype, smoke=False, resume=False, data=None):
     ckpt_dir = specialist_dir(ctype)
     state = None
     if resume and (ckpt_dir / "last.pt").exists():
-        state = load_checkpoint(ckpt_dir / "last.pt")
+        state = load_resume_state(ckpt_dir / "last.pt", smoke, ctype)
+    if state is not None:
         diff = config_diff(plain(state["train_config"]), plain(cfg))
         if diff:
             print(f"[{ctype}] resuming with the checkpoint's config; ignoring differences {diff}")

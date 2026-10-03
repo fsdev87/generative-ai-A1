@@ -175,6 +175,26 @@ def batches(tensors, batch_size):
 # --------------------------------------------------------------------------- #
 # Checkpoints and W&B
 # --------------------------------------------------------------------------- #
+def load_resume_state(path, smoke, tag):
+    """last.pt to resume from, or None. A real run never resumes from a --smoke checkpoint.
+
+    Smoke and real runs share the checkpoint folders, so a quick check run before the real
+    training leaves a finished tiny model there; resuming from it would skip the real training.
+    """
+    state = load_checkpoint(path)
+    if state.get("smoke", False) and not smoke:
+        print(f"[{tag}] ignoring {path}: it is from a --smoke run; training the real model from scratch")
+        return None
+    return state
+
+
+def require_real_checkpoint(path, smoke):
+    """Refuse to evaluate or export a --smoke checkpoint as if it were the trained model."""
+    if not smoke and load_checkpoint(path).get("smoke", False):
+        raise RuntimeError(f"{path} is a --smoke checkpoint (tiny model on synthetic data), not a trained "
+                           "model: run the real training first.")
+
+
 def guard_smoke_overwrite(ckpt_dir, smoke):
     """Refuse to let a smoke run overwrite checkpoints of a real training run."""
     if not smoke:

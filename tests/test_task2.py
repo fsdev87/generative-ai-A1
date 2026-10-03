@@ -271,3 +271,25 @@ def test_oracle_mode_routes_by_the_true_label():
     assert torch.all(out[2] == 0.75) and torch.all(out[3] == 0.25)
     with pytest.raises(ValueError):
         restorer(x)  # oracle without labels
+
+
+def test_real_run_never_resumes_or_evaluates_a_smoke_checkpoint(tmp_path):
+    """Regression: a --smoke quick check left a finished tiny model in the real checkpoint
+    folder; the real `--resume` run then skipped training and evaluation used the tiny model."""
+    import pytest
+
+    from src.common.checkpoint import save_checkpoint
+    from src.task2.common import load_resume_state, require_real_checkpoint
+
+    smoke_ckpt, real_ckpt = tmp_path / "smoke.pt", tmp_path / "real.pt"
+    save_checkpoint(smoke_ckpt, smoke=True, finished=True, epoch=1)
+    save_checkpoint(real_ckpt, smoke=False, finished=False, epoch=7)
+
+    assert load_resume_state(smoke_ckpt, smoke=False, tag="t") is None  # real run starts fresh
+    assert load_resume_state(smoke_ckpt, smoke=True, tag="t")["epoch"] == 1  # smoke may resume smoke
+    assert load_resume_state(real_ckpt, smoke=False, tag="t")["epoch"] == 7
+
+    with pytest.raises(RuntimeError, match="--smoke checkpoint"):
+        require_real_checkpoint(smoke_ckpt, smoke=False)
+    require_real_checkpoint(smoke_ckpt, smoke=True)
+    require_real_checkpoint(real_ckpt, smoke=False)
