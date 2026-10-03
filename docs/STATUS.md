@@ -21,19 +21,20 @@ Estimated total GPU time ≈ 10 h, realistically spread over several days of fre
 | Task 1 | Universal autoencoder, Optuna, evaluation with classical baselines, limited-skip ablation, ONNX export, notebook, 18 tests |
 | Task 3 | Soft MoE from Task 2 checkpoints, warm-up + joint fine-tuning, collapse-aware Optuna, gating analysis, cross-task comparison, ONNX export, notebook, 17 tests |
 | Task 4 stage 2 | cGAN training with separate loss logging, Optuna, test evaluation per style and photo source, generator ONNX export, notebook, 35 tests in total |
+| Report skeleton | `report/main.tex` (IEEE, 18 pages, builds clean), `references.bib` (114 verified entries), `docs/research_notes.md` |
 | Colab setup | `notebooks/colab_setup.ipynb`, Drive layout `MyDrive/GenAI_A1/{archives,cache,checkpoints,optuna,onnx,outputs}` |
 
 ## In progress
 
-| Piece | Remaining |
-|---|---|
-| Report | `docs/research_notes.md`, `report/references.bib`, `report/main.tex`, `report/README.md` |
+Nothing; all model code, the backend and the report skeleton are committed.
 
 ## Not started
 
 | Piece | Blocked on |
 |---|---|
 | Google Stitch design | User (prompts in `docs/stitch_prompt.md`); blocks the frontend |
+| Report author block + YouTube link | User (`report/main.tex`, two places) |
+| Optional: LPIPS as a perceptual metric for Task 4 | Decision; the report's abstract placeholder currently mentions it |
 | React + Tailwind frontend | Stitch design + `docs/api.md` |
 | Docker Compose (frontend + backend, one command) | Frontend |
 | Sample images in `backend/app/samples/` | Pick a few pets + faces, check licences |
