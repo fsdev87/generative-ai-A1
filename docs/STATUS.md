@@ -20,13 +20,13 @@ Estimated total GPU time ≈ 10 h, realistically spread over several days of fre
 | Task 4 stage 1 | FS2K pairing/split/cache, preprocessing (matches the backend exactly), U-Net generator with FiLM style conditioning, projection PatchGAN, 23 tests |
 | Task 1 | Universal autoencoder, Optuna, evaluation with classical baselines, limited-skip ablation, ONNX export, notebook, 18 tests |
 | Task 3 | Soft MoE from Task 2 checkpoints, warm-up + joint fine-tuning, collapse-aware Optuna, gating analysis, cross-task comparison, ONNX export, notebook, 17 tests |
+| Task 4 stage 2 | cGAN training with separate loss logging, Optuna, test evaluation per style and photo source, generator ONNX export, notebook, 35 tests in total |
 | Colab setup | `notebooks/colab_setup.ipynb`, Drive layout `MyDrive/GenAI_A1/{archives,cache,checkpoints,optuna,onnx,outputs}` |
 
 ## In progress
 
 | Piece | Remaining |
 |---|---|
-| Task 4 stage 2 | train / optuna_search / evaluate written; export_onnx, notebook, tests, notes section outstanding |
 | Report | `docs/research_notes.md`, `report/references.bib`, `report/main.tex`, `report/README.md` |
 
 ## Not started
@@ -69,5 +69,11 @@ Estimated total GPU time ≈ 10 h, realistically spread over several days of fre
   reported per style **and** per photo source (`docs/fs2k_notes.md`).
 - All three test "high" severities sit at the top edge of the training ranges, and no training
   blur ever reaches the strength of the (7, 2.5) test level — expect the weakest scores there.
+- **FID/LPIPS deliberately not used for Task 4.** FID over the 46 style-2 test pairs would be
+  statistically meaningless, and LPIPS is trained on natural images rather than line drawings.
+  Sketch quality is reported with L1, PSNR, SSIM and an `edge_ratio` sharpness diagnostic
+  (generated edge energy / ground truth), which directly measures the blur an L1 term induces.
+- Task 4 mixed-precision stability could not be verified on a CPU-only machine; watch the first
+  Colab epoch and fall back to `--no-amp` if the losses are not finite.
 - `src/common/onnx_utils.py` exports with `dynamo=False` to get opset 17; torch 2.12 defaults to
   `dynamo=True`, which produces opset 18 and can emit invalid `Split` nodes.
