@@ -39,7 +39,7 @@ Nothing; all model code, the backend and the report skeleton are committed.
 | Optional: LPIPS as a perceptual metric for Task 4 | Decision; the report's abstract placeholder currently mentions it |
 | Sample pet images in `backend/app/samples/pets/` | Streaming 8 official test images (in progress); faces left out for licence reasons (upload/webcam instead) |
 | Trained ONNX models in `./models` + download link | Training runs |
-| Training runs | Task 1 running on Colab (Optuna started 2026-10-03); then Task 2, Task 3, Task 4 |
+| Training runs | Task 1 done (Colab). Colab GPU quota ran out on 2026-10-04 (deadline day): Task 2 final models + Tasks 3 and 4 run on Kaggle 2x T4 via `scripts/kaggle_run.py` (notebook `notebooks/kaggle_run.ipynb`) |
 | Demonstration video (5-7 min, YouTube) | Working app + trained models |
 | AI-use appendix | Report skeleton |
 
