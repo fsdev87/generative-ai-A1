@@ -16,7 +16,7 @@ served through a single browser application (React + Tailwind frontend, FastAPI 
 - **Trained models (ONNX):** [models.zip](https://github.com/fsdev87/generative-ai-A1/releases/latest/download/models.zip)
   (GitHub Release; all seven models with their model cards)
 - **Experiment tracking:** Weights & Biases project `genai-a1`
-- **Project status:** [docs/STATUS.md](docs/STATUS.md)
+- **Results and their interpretation:** [docs/experiment_log.md](docs/experiment_log.md)
 
 ## Quick start — run the application
 
@@ -79,6 +79,10 @@ Training runs on a free Google Colab T4 GPU; every script resumes after a discon
 
 Each notebook runs its Optuna search, trains the selected configuration, evaluates on the
 official test split and exports ONNX models with a PyTorch parity check.
+
+The released models were produced by `notebooks/kaggle_run.ipynb` (Kaggle, 2x T4), which runs
+`scripts/kaggle_run.py`: the Task 1 skip-connection ablation, Task 2 with skip specialists,
+Task 3 and Task 4, from the configurations in `configs/` selected by the Optuna studies.
 
 ### Running locally instead
 
