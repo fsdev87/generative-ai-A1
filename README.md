@@ -12,7 +12,7 @@ served through a single browser application (React + Tailwind frontend, FastAPI 
 | 4 | Style-conditioned face-to-sketch conditional GAN | FS2K |
 
 - **Technical report:** [report/main.pdf](report/main.pdf) (IEEE format, source `report/main.tex`)
-- **Demonstration video:** TODO
+- **Demonstration video:** <https://youtu.be/XhPP4m8TGJU>
 - **Trained models (ONNX):** [models.zip](https://github.com/fsdev87/generative-ai-A1/releases/latest/download/models.zip)
   (GitHub Release; all seven models with their model cards)
 - **Experiment tracking:** Weights & Biases project `genai-a1`
