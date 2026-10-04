@@ -1,6 +1,7 @@
 """ONNX export, ONNX Runtime parity checks and model cards (sidecar JSON read by the app)."""
 import datetime
 import hashlib
+import inspect
 import json
 import subprocess
 from pathlib import Path
@@ -20,12 +21,14 @@ def export_onnx(model, example_inputs, path, input_names, output_names, opset=17
     dynamic_axes = {n: {0: "batch"} for n in [*input_names, *output_names]} if dynamic_batch else None
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    # TorchScript exporter: stable dynamic_axes support for these CNNs. Newer torch defaults to the
+    # dynamo exporter (opset 18); older torch has no `dynamo` argument and always uses TorchScript.
+    extra = {"dynamo": False} if "dynamo" in inspect.signature(torch.onnx.export).parameters else {}
     with torch.no_grad():
         torch.onnx.export(
             model, example_inputs, str(path),
             input_names=list(input_names), output_names=list(output_names),
-            dynamic_axes=dynamic_axes, opset_version=opset, do_constant_folding=True,
-            dynamo=False,  # TorchScript exporter: stable dynamic_axes support for these CNNs
+            dynamic_axes=dynamic_axes, opset_version=opset, do_constant_folding=True, **extra,
         )
     onnx.checker.check_model(onnx.load(str(path)))
     return path

@@ -1,0 +1,9 @@
+# Final-run configuration shared by the three Task 2 specialists, selected by the shared Optuna
+# study task2_specialists on Colab (20 trials; best trial 10, mean validation score 0.6819).
+# Latent preset "16x16x32": depth 3, 32 channels = 8,192 values (6x compression).
+lr: 0.0023681543308829141
+batch_size: 16
+base_channels: 48
+depth: 3
+latent_channels: 32
+alpha: 0.5157516862404526

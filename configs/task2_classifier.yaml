@@ -1,0 +1,9 @@
+# Final-run configuration of the Task 2 corruption classifier, selected by the Optuna study
+# task2_classifier on Colab (30 trials; best trial 1, validation macro-F1 0.9959).
+# Committed so the final run can be repeated anywhere (Colab's GPU quota ran out before Task 3).
+lr: 0.0016967533607196547
+batch_size: 32
+channels: [32, 64, 128, 256]
+convs_per_stage: 1
+dropout: 0.14607232426760908
+weight_decay: 0.0002920433847181409
