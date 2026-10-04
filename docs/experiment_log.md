@@ -77,8 +77,39 @@ Hardware for every run: Google Colab free tier, NVIDIA Tesla T4, mixed precision
 ### Test evaluation (official test manifest, 36,690 entries; `best.pt`, epoch 59)
 
 - All corrupted test inputs (salt + blur + occlusion, all severities, 33,021 entries):
-  **PSNR 23.82 dB, SSIM 0.7845**. Per type × severity and the baseline comparison:
-  `outputs/task1/tables/comparison_by_type{,_level}.csv` — *to be copied here*.
+  **PSNR 23.82 dB, SSIM 0.7845**. Per type × severity, with the identity baseline (no
+  restoration) and the oracle classical baselines (told the corruption type and parameters):
+
+  | Input | Identity PSNR / SSIM | Oracle classical PSNR / SSIM | **UDAE PSNR / SSIM** |
+  |---|---|---|---|
+  | clean | 100 (exact) / 1.000 | 100 / 1.000 | **25.12 / 0.828** |
+  | salt low | 20.13 / 0.602 | 30.39 / 0.893 | **25.13 / 0.828** |
+  | salt medium | 15.87 / 0.339 | 29.51 / 0.884 | **25.13 / 0.826** |
+  | salt high | 13.14 / 0.204 | 27.78 / 0.863 | **25.04 / 0.821** |
+  | blur low | 32.34 / 0.944 | 36.38 / 0.976 | **25.28 / 0.827** |
+  | blur medium | 26.77 / 0.806 | 28.32 / 0.854 | **25.14 / 0.819** |
+  | blur high | 24.35 / 0.692 | 25.41 / 0.735 | **24.34 / 0.756** |
+  | occlusion low | 16.67 / 0.862 | 26.74 / 0.930 | **23.03 / 0.782** |
+  | occlusion medium | 13.26 / 0.726 | 23.03 / 0.860 | **21.52 / 0.736** |
+  | occlusion high | 10.76 / 0.536 | 20.25 / 0.756 | **19.80 / 0.665** |
+  | all corrupted, low | 23.05 / 0.803 | 31.17 / 0.933 | **24.48 / 0.812** |
+  | all corrupted, medium | 18.63 / 0.624 | 26.95 / 0.866 | **23.93 / 0.794** |
+  | all corrupted, high | 16.08 / 0.477 | 24.48 / 0.785 | **23.06 / 0.747** |
+
+  (3,669 entries per type × level row; source `outputs/task1/tables/comparison_by_type_level.csv`.)
+- Sanity check of the exported model in the real backend (`/api/restore/universal`, sample
+  Abyssinian_201, seed 7): salt high 12.87 → 24.02 dB, blur low 30.94 → 24.42 dB, occlusion medium
+  14.10 → 19.47 dB, clean 100 → 24.30 dB — the same pattern as the test set.
+
+**Interpretation — the ~25 dB ceiling.** The UDAE's output quality is nearly constant (≈ 25 dB,
+SSIM ≈ 0.82) for clean, salt and low/medium blur inputs: the 12× bottleneck caps how faithfully
+any image can be reproduced (clean detail ratio 0.50). Consequently it helps most where the
+corruption is severe (salt high +11.9 dB, occlusion high +9.0 dB over the input) but *hurts* mild
+corruptions (blur low −7.1 dB) and clean images (exact → 25 dB). This is the direct motivation for
+Task 2's identity bypass and specialists, and for Task 3. The oracle classical baselines beat the
+UDAE in PSNR almost everywhere, but they are given the corruption type, its parameters and the
+occlusion mask; the UDAE is blind. Only for high blur does the UDAE reach a higher SSIM (0.756 vs
+0.735) than unsharp masking with the known kernel.
 - **Salt-and-pepper impulse survival: 0.0023** — of the pixels hit by an impulse, 0.23 % are still
   closer to the impulse than to the clean value after restoration (identity = 1, perfect = 0).
 - **Clean detail ratio: 0.498** — on clean inputs the output has about half the high-frequency
