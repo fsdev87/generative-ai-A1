@@ -41,8 +41,9 @@ Upload the whole `report/` folder (including `IEEEtran.cls` and `IEEEtran.bst`),
 set `main.tex` as the main document and leave the compiler on pdfLaTeX. Overleaf
 runs the pdflatex/bibtex sequence above automatically. No further packages are
 needed: the preamble uses only `fontenc`, `inputenc`, `amsmath`, `amssymb`,
-`graphicx`, `booktabs`, `multirow`, `xcolor`, `url` and `hyperref`, all of which
-are in every standard TeX distribution.
+`graphicx`, `booktabs`, `multirow`, `xcolor`, `url`, `tikz`, `microtype` and
+`hyperref`, all of which are in every standard TeX distribution. Upload the
+`figures/` and `tables/` folders too.
 
 ### A missing package on MiKTeX
 
@@ -56,40 +57,71 @@ miktex packages install <package>
 
 ## Current state of the document
 
-The report is a working draft: the prose that does not depend on experimental
-results (abstract framing, introduction, related work, dataset preparation,
-methodology for all four tasks, experimental setup, application architecture,
-limitations) is written, and everything that waits on a training run is marked.
+Task 1, the Task 2 Optuna searches, the experimental setup, the application,
+the limitations and the AI-use appendix are written from the real results
+(`docs/experiment_log.md` and the files in `outputs/`). Everything that waits on
+the Kaggle runs (Task 2 final models, Tasks 3 and 4) is marked:
 
 - `\todo{...}` renders in red as `[TODO: ...]` and states exactly which figure,
   table or number belongs there.
-- `\tbd` renders as a red `--` and marks a single empty cell in a results table.
-  The note under each such table says, with a `\todo`, which output file
-  supplies that table's numbers.
-- `\placeholderfig{...}` / `\placeholderfigwide{...}` draw a framed red box of
-  roughly the final figure's size, describing the figure and naming the file
-  that will produce it. Replace the whole call with
-  `\includegraphics[width=\columnwidth]{figures/<name>.png}` (or
-  `width=\textwidth` inside a `figure*`) once the figure exists. Every figure
-  and table already has its `\label`, so cross-references work now and keep
-  working afterwards.
+- `\tbd` renders as a red `--` and marks a single empty cell in a placeholder
+  table.
+- Figures and generated tables are included with `\resultfig{<file>}` and
+  `\resulttable{<file>}` (defined in the preamble). If `figures/<file>` or
+  `tables/<file>` exists it is used; otherwise a red placeholder names the
+  missing file and the script output it comes from. **Copying the file in is
+  enough: no LaTeX has to be edited.** Generated tables keep only their tabular;
+  the caption and label in `main.tex` apply, and a tabular wider than the
+  column is scaled down to fit.
 
 To find what is still outstanding:
 
 ```bash
-grep -n "todo{\|tbd\|placeholderfig" main.tex
+python report/collect_outputs.py --missing     # figure and table files still missing
+grep -n "todo{\|tbd" main.tex                  # text and numbers still to write
 ```
 
-Two further items to fill in before submission: the author block at the top of
-`main.tex`, and the YouTube link, which appears twice (in the introduction and
-in the Availability section).
+Still to add by hand: the YouTube link (introduction and Availability), the
+download link of the ONNX models (Availability), the four application
+screenshots and the Task 4 training curves exported from Weights & Biases
+(file names below).
 
-## Figures
+## Figures and tables
 
-Copy the PNGs named in the placeholder boxes from the `outputs/` tree into
-`report/figures/` and keep their names, so each placeholder maps to one file.
-The evaluation scripts write them at 200 dpi, which is adequate for a two-column
-IEEE page.
+`collect_outputs.py` copies everything from the `outputs/` tree with one naming
+rule (run it from the repository root after downloading new outputs):
+
+```bash
+python report/collect_outputs.py                    # all groups
+python report/collect_outputs.py task2 task3 task4  # only the Kaggle results
+```
+
+| Source (`outputs/`) | Destination (`report/`) |
+|---|---|
+| `corruption_grid.png` | `figures/corruption_grid.png` |
+| `taskN/figures/X.png` | `figures/taskN_X.png` |
+| `taskN/tables/X.tex` | `tables/taskN_X.tex` |
+| `task3/mixed/X.png`, `X.tex` | `figures/task3_X.png`, `tables/task3_X.tex` |
+| `task1/optuna/task1_udae/X.png` | `figures/task1_optuna_X.png` |
+| `task2/optuna/task2_classifier/X.png` | `figures/task2_classifier_optuna_X.png` |
+| `task2/optuna/task2_specialists/X.png` | `figures/task2_specialists_optuna_X.png` |
+| `task3/optuna/task3_moe/X.png` | `figures/task3_optuna_X.png` |
+| `task4/optuna/task4_cgan/X.png` | `figures/task4_optuna_X.png` |
+
+Do not copy the Task 2 tables and figures of the Colab run (`outputs/task2/tables`,
+`figures`, `eval`): Task 2's final models are being retrained on Kaggle and only
+those results belong in the report.
+
+Figures that no script writes, saved by hand under these names:
+
+| File | Content |
+|---|---|
+| `figures/app_universal.png`, `app_hard.png`, `app_moe.png`, `app_sketch.png` | screenshots of the four workspaces with the trained models |
+| `figures/task4_training_curves.png` | W&B export of the final Task 4 run: `train/d_real`, `train/d_fake`, `train/g_adv`, `train/g_l1` and validation metrics |
+
+The Google Stitch screens in `figures/stitch/` are copies of `design/stitch/*.png`.
+The evaluation scripts write figures at 200 dpi, which is adequate for a
+two-column IEEE page.
 
 ## Checks before submitting
 
@@ -98,6 +130,7 @@ grep -c "Overfull" main.log        # should stay small; > 10pt is visible
 grep -i "undefined" main.log       # must find no undefined references or citations
 ```
 
-A clean build of the current draft produces an 18-page PDF with no undefined
-references or citations and no LaTeX warnings. The page count will change as
-placeholders are replaced by real figures, tables and numbers.
+A clean build of the current draft (Task 1 and the Task 2 searches filled in, the
+Kaggle results still placeholders) produces a 28-page PDF with no undefined
+references or citations and no overfull boxes. Placeholder boxes are sized like
+the final figures, so the page count should change little as they are replaced.

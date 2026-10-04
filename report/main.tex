@@ -9,9 +9,16 @@
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{multirow}
 \usepackage{xcolor}
 \usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit}
+% Courier's T1 encoding turns "--" into a dash; command-line options such as
+% --build and --resume must print as two hyphens.
+\usepackage[protrusion=false,expansion=false]{microtype}
+\DisableLigatures[-]{encoding=T1,family=tt*}
 \usepackage[hidelinks]{hyperref}
 
 % Placeholders for everything that depends on experimental results that do not
@@ -21,16 +28,53 @@
 % says, with \todo, exactly which output file supplies that table's numbers.
 \newcommand{\tbd}{\textcolor{red}{--}}
 
-% A figure placeholder: a framed box of the right size, replaced by \includegraphics
-% once the figure file exists.
-% \sloppy and the emergency stretch let the long file paths inside these boxes
-% break across lines instead of overflowing them.
-\newcommand{\placeholderfig}[1]{%
-  \fbox{\parbox[c][0.18\textheight][c]{0.92\columnwidth}{%
-    \sloppy\emergencystretch=4em\centering\color{red}\scriptsize #1}}}
-\newcommand{\placeholderfigwide}[1]{%
-  \fbox{\parbox[c][0.20\textheight][c]{0.95\textwidth}{%
-    \sloppy\emergencystretch=4em\centering\color{red}\scriptsize #1}}}
+% A framed red box of the given width and height, shown wherever a figure file does
+% not exist yet. \sloppy and the emergency stretch let long file paths break.
+\newcommand{\placeholderbox}[3]{% width, height, text
+  \fbox{\parbox[c][#2][c]{\dimexpr#1-2\fboxsep-2\fboxrule\relax}{%
+    \sloppy\emergencystretch=4em\centering\color{red}\scriptsize #3}}}
+\newcommand{\placeholderfig}[1]{\placeholderbox{0.95\columnwidth}{0.16\textheight}{#1}}
+
+% Result figures and tables. Every figure and LaTeX table written by the scripts is
+% included through \resultfig / \resulttable: if the file exists in figures/ or
+% tables/ it is used, otherwise a red placeholder names the missing file and the
+% script output it comes from. Copying the file in (report/collect_outputs.py does
+% it for every output) is enough; the text never needs editing.
+% \resultfig[placeholder height]{file in figures/}{width}{what it shows and its source}
+\newcommand{\resultfig}[4][0.16\textheight]{%
+  \IfFileExists{figures/#2}%
+    {\includegraphics[width=#3,height=0.42\textheight,keepaspectratio]{figures/#2}}%
+    {\placeholderbox{#3}{#1}{\textbf{Missing figure} \path{report/figures/#2}\\[2pt]#4}}}
+% \resulttable[maximum width]{file in tables/}{placeholder shown while it is missing}
+% A generated file holds a complete table float (booktabs) with its own caption and
+% label; only its tabular is kept, so the caption and label written here apply.
+% Underscores in generated headers (e.g. EDGE_RATIO) are printed literally, and a
+% tabular wider than the available width is scaled down to fit.
+\newsavebox{\generatedtablebox}
+\let\mathsubscript=_
+\begingroup
+\catcode`\_=\active
+\gdef\textsafeunderscore{\catcode`\_=\active
+  \def_{\ifmmode\mathsubscript\else\textunderscore\fi}}
+\endgroup
+\newcommand{\generatedtabular}[1]{%
+  \begingroup
+  \renewenvironment{table}[1][]{}{}%
+  \renewcommand{\caption}[2][]{}%
+  \renewcommand{\label}[1]{}%
+  \textsafeunderscore
+  \input{#1}%
+  \endgroup}
+\newcommand{\resulttable}[3][\linewidth]{%
+  \IfFileExists{tables/#2}%
+    {\sbox{\generatedtablebox}{\generatedtabular{tables/#2}}%
+     \ifdim\wd\generatedtablebox>#1\relax
+       \resizebox{#1}{!}{\usebox{\generatedtablebox}}%
+     \else\usebox{\generatedtablebox}\fi}%
+    {#3}}
+% Red note under a placeholder table naming the file that will replace it.
+\newcommand{\missingtable}[2]{\\[2pt]{\color{red}\scriptsize
+  \textbf{Missing table} \path{report/tables/#1}, copied from \path{#2}}}
 
 \newcommand{\repourl}{https://github.com/fsdev87/generative-ai-A1}
 
@@ -66,11 +110,15 @@ styles of the FS2K dataset, using a U-Net generator whose decoder is modulated b
 a learned style embedding and a PatchGAN discriminator conditioned by projection.
 Every model is tuned with Optuna, tracked with Weights \& Biases, exported to
 ONNX with a verified parity check, and served through a FastAPI backend behind a
-React interface that runs under Docker Compose.
-\todo{one or two sentences of headline quantitative results once all four
-systems have been trained: Task~1 PSNR/SSIM per corruption, Task~2 classifier
-macro-F1 and routing gain, Task~3 soft-routing gain over hard routing, Task~4
-per-style SSIM/LPIPS}
+React interface that runs under Docker Compose. On the 33{,}021 corrupted entries
+of the official test manifest the universal autoencoder reaches 23.82~dB PSNR and
+0.7845 SSIM without being told the corruption, removes 99.8\% of salt-and-pepper
+impulses, and pays for its 12$\times$ bottleneck with a near-constant
+${\approx}25$~dB output ceiling that costs detail on clean and mildly corrupted
+inputs---the limitation that motivates explicit and soft routing.
+\todo{one sentence of headline results for the other systems once the Kaggle runs
+finish: Task~2 classifier macro-F1 and routing gain, Task~3 soft-routing gain over
+hard routing, Task~4 per-style SSIM and $L_1$}
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -129,7 +177,7 @@ the numbers mean}: PSNR is capped for identical images, clean inputs through an
 identity bypass are exact rather than merely excellent, FID is biased at small
 sample sizes, and the FS2K test set contains only 46 images of one style. Each
 of these is stated where the corresponding result is presented rather than
-buried. The third is \emph{deployability}: all five inference models are
+buried. The third is \emph{deployability}: all seven inference models are
 exported to ONNX and checked against their PyTorch originals, and the complete
 application starts with a single Docker Compose command.
 
@@ -164,7 +212,8 @@ what a bottleneck is supposed to forbid: a full-resolution skip lets the decoder
 reconstruct detail the latent never encoded. Context Encoders take the opposite
 route for inpainting, using a narrow bottleneck and no skips, because occluded
 content must be synthesised from context rather than copied~\cite{pathak2016context}.
-Section~\ref{sec:task1} measures this trade-off rather than assuming it.
+Section~\ref{sec:task1} quantifies both sides of this trade-off for the
+bottleneck model rather than assuming them.
 
 \subsection{Routing and all-in-one restoration}
 
@@ -406,8 +455,11 @@ of the 3{,}669 test images appears in ten variants---clean, plus each of the
 three corruptions at each of the three fixed severity levels---giving
 \textbf{36{,}690 entries}, exactly 3{,}669 per (type, level) group. Because every
 image appears under every condition, comparisons across corruptions and
-severities are paired, and because the test set is balanced by construction,
-accuracy and micro-averaged F1 coincide for the Task~2 classifier. The achieved
+severities are paired. The test set is balanced per (type, level) group but not
+per class: the clean class has 3{,}669 entries and each corruption 11{,}007, so
+for the Task~2 classifier macro-averaged metrics weight the clean class as much
+as each corruption, whereas accuracy (which equals micro-averaged F1 for
+single-label classification) is dominated by the corruptions. The achieved
 occlusion coverage across the test manifest is tightly controlled: mean $0.1000$,
 $0.2000$ and $0.3500$ for the three levels, with extremes of $0.0987$--$0.1016$,
 $0.1972$--$0.2028$ and $0.3462$--$0.3544$.
@@ -415,16 +467,18 @@ $0.1972$--$0.2028$ and $0.3462$--$0.3544$.
 Figure~\ref{fig:corruptiongrid} shows the four conditions at the three fixed test
 severities.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\placeholderfig{Figure file: \texttt{outputs/corruption\_grid.png}, produced by
-\texttt{scripts/preview\_corruptions.py}. Grid of three test images (rows) by ten
-variants (columns): clean, salt-and-pepper low/medium/high, blur
-low/medium/high, occlusion low/medium/high.}
-\caption{The four input conditions at the three fixed test severities. Every
-test image appears in all ten variants in the test manifest.}
+\resultfig{corruption_grid.png}{\textwidth}{Copied from
+\path{outputs/corruption_grid.png} (\path{scripts/preview_corruptions.py}): three
+test images by ten variants.}
+\caption{The four input conditions at the three fixed test severities, applied to
+three test images by the deterministic test manifest: clean, salt-and-pepper
+($p = 0.03, 0.08, 0.15$), Gaussian blur ($(3,0.7), (5,1.5), (7,2.5)$) and
+occlusion (one, two and three rectangles covering 10, 20 and 35\%). Every test
+image appears in all ten variants.}
 \label{fig:corruptiongrid}
-\end{figure}
+\end{figure*}
 
 \subsection{Class-balanced sampling}
 
@@ -542,14 +596,18 @@ bottleneck, which the brief rules out; and for this task they are actively
 harmful, because here the input \emph{is} the corruption---a full-resolution skip
 hands salt-and-pepper impulses and black occlusion rectangles straight to the
 decoder. Since skips are nonetheless standard in restoration, and RED-Net
-attributes real gains to them~\cite{mao2016image}, their effect is measured
-rather than assumed. Three ablation variants add exactly one skip, at $16\times16$,
-$32\times32$ and $128\times128$ respectively, with identical hyperparameters and
-epoch budget. Even the $16\times16$ skip carries $256 \times 16 \times 16 =
-65{,}536$ values, more than the input itself, which makes the point that a
+attributes real gains to them~\cite{mao2016image}, an ablation was designed to
+measure their effect rather than assume it: three variants add exactly one skip,
+at $16\times16$, $32\times32$ and $128\times128$ respectively, with identical
+hyperparameters and epoch budget. Even the $16\times16$ skip carries
+$256 \times 16 \times 16 = 65{,}536$ values at base width 32 (98{,}304 at the
+selected width 48), more than the input itself, which makes the point that a
 ``limited'' skip is limited in \emph{resolution}, not in capacity: deep features
 have passed through many nonlinearities and carry context, whereas a
-$128\times128$ skip is two convolutions from raw pixels.
+$128\times128$ skip is two convolutions from raw pixels. The variants are
+implemented\IfFileExists{tables/task1_skip_ablation.tex}{ and compared in
+Section~\ref{sec:task1skip}.}{, but the GPU budget did not allow training them
+(Section~\ref{sec:task1skip}).}
 
 Two diagnostics quantify the trade-off directly. \emph{Impulse survival}, on
 salt-and-pepper entries, is the fraction of impulse-hit pixels whose output
@@ -630,20 +688,24 @@ configuration, so the report can state how much the search gained over it. The
 search space is given in Table~\ref{tab:task1search}.
 
 \begin{table}[t]
-\caption{Optuna search space for Task 1 (study \texttt{task1\_udae}): 40 trials
-of 15 epochs each, TPE sampler, median pruner.}
+\caption{Optuna search space of Task 1 (study \texttt{task1\_udae}, TPE sampler,
+median pruner, 15 epochs per trial), the brief's starting point (trial~0) and the
+configuration selected by the search (trial~32).}
 \label{tab:task1search}
 \centering
-\begin{tabular}{@{}llp{3.1cm}@{}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lllll@{}}
 \toprule
-Parameter & Range & Scale / rationale \\
+Parameter & Range & Scale & Trial 0 & Selected \\
 \midrule
-Learning rate & $10^{-4}$--$3\times10^{-3}$ & log-uniform, brackets $10^{-3}$ \\
-Batch size & $\{16, 32, 64\}$ & 184/92/46 steps per epoch \\
-Latent channels & $\{8, 16, 32, 64\}$ & $96\times$--$12\times$ compression \\
-Base channels & $\{16, 32, 48, 64\}$ & 1.0--16.5\,M parameters \\
-Dropout & $0.0$--$0.3$ & spatial dropout after each block \\
-$\alpha$ (loss weight) & $0.1$--$0.95$ & spans SSIM- and $L_1$-dominated \\
+Learning rate & $10^{-4}$--$3\times10^{-3}$ & log & $10^{-3}$ & $8.28\times10^{-4}$ \\
+Batch size & $\{16, 32, 64\}$ & cat. & 32 & \textbf{16} (edge) \\
+Latent channels & $\{8, 16, 32, 64\}$ & cat. & 32 & \textbf{64} (edge) \\
+Base channels & $\{16, 32, 48, 64\}$ & cat. & 32 & 48 \\
+Dropout & $0.0$--$0.3$ & uniform & 0 & 0.016 \\
+$\alpha$ ($L_1$ weight) & $0.1$--$0.95$ & uniform & 0.8 & \textbf{0.285} \\
+\midrule
+\multicolumn{3}{@{}l}{Validation score~(\ref{eq:score}) after 15 epochs} & 0.5940 & \textbf{0.6263} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -652,9 +714,65 @@ Trials run 15 epochs, a quarter of the 60-epoch final run, and the cosine
 schedule anneals completely within each trial so that configurations are
 compared as fully annealed models rather than mid-schedule. The known
 limitation of this low-fidelity protocol is that settings which pay off only
-late---a lower learning rate, or dropout---can be under-rated;
-\todo{state whether the selected configuration differed systematically from
-trial~0, and whether the final 60-epoch run confirmed the 15-epoch ranking}.
+late---a lower learning rate, or dropout---can be under-rated. The ranges, in
+the order of Table~\ref{tab:task1search}: the learning rate brackets Adam's usual
+$10^{-3}$; the batch sizes give 184, 92 or 46 optimiser steps per epoch on 2{,}944
+images; the latent widths give $96\times$ to $12\times$ compression; the base widths
+give 1.0 to 16.5\,M parameters; the dropout range stays low because runtime
+corruption already regularises; and the $\alpha$ range spans SSIM- to
+$L_1$-dominated losses.
+
+\subsubsection{Search results}
+
+The study was launched for 40 trials with a 90-minute cap, and the cap ended it:
+33 trials were run (15 completed, 18 stopped by the median pruner) in 89.6
+minutes of trial time on the T4. The best trial was the \emph{last} one, trial~32,
+with a validation score of 0.6263 against 0.5940 for the brief's starting
+configuration (Fig.~\ref{fig:task1optuna}, left), so the search was still
+improving when it stopped and more trials could plausibly have helped. Four
+observations explain the selected configuration.
+
+\emph{Loss weighting.} Optuna moved $\alpha$ from the brief's 0.8 to 0.285, putting
+most of the weight on the $(1-\mathrm{SSIM})$ term, and $\alpha$ is the most
+important parameter in Optuna's importance estimate over the completed trials
+(0.44, Fig.~\ref{fig:task1optuna}, right). This agrees with Zhao et al.\ once their
+parameterisation is read correctly: their $\alpha = 0.84$ weights the MS-SSIM
+term~\cite{zhao2017loss}, which corresponds to $\alpha \approx 0.16$ here, not to
+the brief's 0.8 on $L_1$. One caveat applies: the selection score~(\ref{eq:score})
+is itself half SSIM, which favours SSIM-heavy losses.
+
+\emph{Bottleneck at the edge of the range.} The best trial used the widest latent
+in the range, $64 \times 8 \times 8 = 4{,}096$ values ($12\times$ compression). A
+wider bottleneck passes more detail, so reconstruction quality rises with it;
+the margin is small here (the best 32-channel trial, trial~24, scored 0.6225) and
+the latent width has a low importance (0.02), but the direction is the expected
+one. The range was capped deliberately: much wider latents approach an identity
+mapping, which the brief rules out by requiring a meaningful bottleneck, so the
+edge result reflects a quality-versus-compression trade-off rather than an
+oversight of the search.
+
+\emph{Short-budget bias.} The smallest batch size won, and TPE converged on it
+(11 of the last 12 trials used batch~16). With a fixed 15-epoch budget, batch~16
+gives four times as many optimiser steps as batch~64 (184 against 46 per epoch),
+so short trials favour configurations that learn fast; the final run, four
+times longer, mitigates but does not remove this bias.
+
+\emph{Dropout.} Dropout has the second-highest importance (0.40), but in the
+negative direction: the five best trials all used a rate of at most 0.065 and the
+selected value is 0.016, consistent with the expectation that runtime
+corruption already regularises the model.
+
+\begin{figure*}[t]
+\centering
+\resultfig{task1_optuna_optimization_history.png}{0.42\textwidth}{From
+\path{outputs/task1/optuna/task1_udae/optimization_history.png}.}\hfil
+\resultfig{task1_optuna_param_importances.png}{0.42\textwidth}{From
+\path{outputs/task1/optuna/task1_udae/param_importances.png}.}
+\caption{Optuna study \texttt{task1\_udae}. Left: validation score of every
+completed trial and the running best; pruned trials have no final value and are
+not shown. Right: parameter importances estimated from the completed trials.}
+\label{fig:task1optuna}
+\end{figure*}
 
 \subsubsection{Baselines}
 
@@ -675,130 +793,234 @@ to conceal.
 
 \subsection{Results}
 
-\begin{table}[t]
-\caption{Task 1 test results per input condition on the 36{,}690-entry test
-manifest. Clean-input rows for the identity and oracle baselines are exact, and
-are reported as such rather than as a capped PSNR.}
+\subsubsection{Final training}
+
+The selected configuration was retrained for the full 60 epochs (Weights \&
+Biases run \texttt{udae}): 9.31\,M parameters, a $64 \times 8 \times 8 = 4{,}096$-value
+latent ($12\times$ compression) and no skip connections. At batch size 16 an epoch
+is 184 optimiser steps and took about 19\,s on the T4, so the whole run took
+about 20 minutes. Early stopping (patience 12) never triggered: the best
+validation score, 0.7023, was reached at epoch 59 of 60, where the validation
+manifest gives 24.29~dB PSNR and 0.7974 SSIM overall and, per condition,
+25.59~dB / 0.833 (clean), 25.25~dB / 0.827 (salt-and-pepper), 25.31~dB / 0.816
+(blur) and 21.02~dB / 0.714 (occlusion).
+
+The curves in Fig.~\ref{fig:task1curves} show where that score came from. It was
+0.629 at epoch 17 and 0.702 at epoch 59: most of the gain arrived in the
+low-learning-rate tail of the warm-up and cosine schedule. While the learning
+rate was high, validation PSNR oscillated by about $\pm0.7$~dB from epoch to
+epoch; the oscillation settled as the rate decayed. The same configuration had
+scored 0.6263 after its 15-epoch trial, so the four-times-longer schedule added
+0.076---a reminder that the search ranks configurations at low fidelity and the
+absolute values of Table~\ref{tab:task1search} understate what a full run reaches.
+Training and validation losses track each other closely throughout, as expected
+when every epoch draws fresh corruptions: there is no sign of overfitting.
+
+\begin{figure*}[t]
+\centering
+\resultfig{task1_training_curves.png}{0.92\textwidth}{From
+\path{outputs/task1/figures/training_curves.png}.}
+\caption{Task 1 training: training and validation loss (left), and validation
+PSNR (centre) and SSIM (right) per input condition on the validation manifest.
+The dotted line marks the best epoch (59).}
+\label{fig:task1curves}
+\end{figure*}
+
+\subsubsection{Test results}
+
+Tables~\ref{tab:task1bytype} and~\ref{tab:task1bylevel} give the test results on
+the official manifest (36{,}690 entries, float32). Pooled over the 33{,}021
+corrupted entries the UDAE reaches \textbf{23.82~dB PSNR and 0.7845 SSIM}, against
+19.26~dB / 0.6346 for the corrupted input itself and 27.53~dB / 0.8611 for the
+oracle classical baselines.
+
+\begin{table*}[t]
+\caption{Task 1 test results per input condition (36{,}690 entries; 3{,}669 clean
+and 11{,}007 per corruption): PSNR (dB) and SSIM of the corrupted input itself, of
+the oracle classical baselines that are told the corruption and its parameters,
+and of the UDAE, which is told nothing. Both baselines return clean inputs
+unchanged (exact, $\infty$); the pooled ``corrupted'' row covers the three
+corruptions only.}
 \label{tab:task1bytype}
 \centering
-\begin{tabular}{@{}lccc@{}}
+\footnotesize
+\resulttable{task1_comparison_by_type.tex}{%
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-Condition & Identity & Oracle classical & UDAE \\
+Type & \multicolumn{2}{c}{Corrupted input} & \multicolumn{2}{c}{Oracle classical} & \multicolumn{2}{c}{UDAE} \\
 \midrule
-Clean & \tbd & \tbd & \tbd \\
-Salt-and-pepper & \tbd & \tbd & \tbd \\
-Gaussian blur & \tbd & \tbd & \tbd \\
-Occlusion & \tbd & \tbd & \tbd \\
-\midrule
-Corrupted (pooled) & \tbd & \tbd & \tbd \\
+clean & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill with PSNR (dB) / SSIM from
-\texttt{outputs/task1/tables/comparison\_by\_type.tex}}
-\end{table}
+\end{tabular}%
+\missingtable{task1_comparison_by_type.tex}{outputs/task1/tables/comparison_by_type.tex}}
+\end{table*}
 
-\todo{paragraph interpreting Table~\ref{tab:task1bytype}: which corruption the
-single model handles best and worst, whether it beats the oracle baselines that
-know the corruption, and by how much}
-
-\begin{table}[t]
-\caption{Task 1 test results per corruption and severity level.}
+\begin{table*}[t]
+\caption{Task 1 test results per input condition and severity level (3{,}669 entries
+per row), with the same two reference points as Table~\ref{tab:task1bytype}.}
 \label{tab:task1bylevel}
 \centering
-\begin{tabular}{@{}lccc@{}}
+\footnotesize
+\resulttable{task1_comparison_by_type_level.tex}{%
+\begin{tabular}{@{}llcccccc@{}}
 \toprule
-Condition & Low & Medium & High \\
+Type & Severity & \multicolumn{2}{c}{Corrupted input} & \multicolumn{2}{c}{Oracle classical} & \multicolumn{2}{c}{UDAE} \\
 \midrule
-Salt-and-pepper & \tbd & \tbd & \tbd \\
-Gaussian blur & \tbd & \tbd & \tbd \\
-Occlusion & \tbd & \tbd & \tbd \\
+salt & low & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill with PSNR / SSIM from
-\texttt{outputs/task1/tables/by\_type\_level.tex}; comment specifically on the
-high level, which sits at the top edge of the training ranges
-(Section~\ref{sec:data})}
-\end{table}
+\end{tabular}%
+\missingtable{task1_comparison_by_type_level.tex}{outputs/task1/tables/comparison_by_type_level.tex}}
+\end{table*}
 
-\begin{figure}[t]
-\centering
-\placeholderfig{Figure file:
-\texttt{outputs/task1/figures/training\_curves.png}. Training and validation
-loss per epoch, and per-condition validation PSNR and SSIM, with the best epoch
-marked.}
-\caption{Task 1 training and validation curves.}
-\label{fig:task1curves}
-\end{figure}
+\textbf{The ${\approx}25$~dB ceiling.} The most striking feature of the results is
+how \emph{constant} the output quality is. Clean inputs, all three salt-and-pepper
+levels and the low and medium blur levels all come out at 25.0--25.3~dB and SSIM
+0.82--0.83 (Fig.~\ref{fig:task1severity}). The bottleneck caps how faithfully any
+image can be reproduced, whatever the input. The consequence cuts both ways. The
+UDAE helps most where the corruption is severe---salt-and-pepper high rises from
+13.14 to 25.04~dB (+11.9~dB) and occlusion high from 10.76 to 19.80~dB
+(+9.0~dB)---but it \emph{hurts} mild corruptions and clean images: the low blur
+level drops from 32.34 to 25.28~dB ($-7.1$~dB), and a clean image, which needs no
+change at all, comes back at 25.12~dB / 0.828 instead of unchanged. This is the
+cost of universality, and it is the direct motivation for the identity bypass and
+the specialists of Task~2 and for the soft routing of Task~3: a system that knows
+an image is clean can return it exactly.
 
-\begin{figure}[t]
+\textbf{Against the oracle.} The classical baselines beat the UDAE in PSNR on all
+nine corrupted groups, but they are given the corruption type, its exact parameters and, for
+occlusion, the mask; the UDAE is blind to all three. The comparison is therefore a
+measure of what that knowledge is worth rather than a contest: the median filter
+removes most impulses because it is told that the image contains them, while the
+UDAE must first infer it. The gap is smallest for the strongest
+degradations---occlusion high (19.80 against 20.25~dB) and blur high (24.34
+against 25.41~dB)---and for blur high the UDAE even reaches a \emph{higher} SSIM than
+unsharp masking with the true kernel (0.756 against 0.735): the learned prior
+reconstructs structure that a one-step deconvolution cannot recover.
+
+\textbf{Occlusion is the hardest condition}, about 4~dB below the others on the
+validation set and 21.45~dB / 0.728 on the test set: pixels behind a black mask
+carry no information, so the model must synthesise plausible content, whereas
+noise and blur leave evidence in the corrupted pixels. \textbf{Severity.} The
+high levels sit at the upper edge of the training ranges
+(Section~\ref{sec:data}), and their effect differs by corruption:
+salt-and-pepper is flat across severities (25.13, 25.13 and 25.04~dB), whereas
+blur high loses 0.8~dB and 0.06 SSIM relative to medium and occlusion degrades
+steadily (23.03, 21.52 and 19.80~dB) as the hidden area grows from 10 to 35\%.
+
+\textbf{Both sides of the bottleneck, measured.} Two diagnostics separate the
+leak from the loss. Impulse survival on the 11{,}007 salt-and-pepper entries is
+\textbf{0.0023}---0.20, 0.22 and 0.25\% at the three levels---so 99.8\% of the
+impulse-hit pixels end up closer to their clean value than to the impulse: there
+is no shortcut for the corruption. The detail ratio on the 3{,}669 clean entries is
+\textbf{0.498}: the output has only half the Laplacian energy of the clean image,
+so half of the fine texture is lost even when nothing needed fixing. The
+representative examples in Fig.~\ref{fig:task1examples} show the same: impulses
+vanish at every level, while fur and background texture are visibly smoothed,
+and occluded regions are filled with smooth, plausible but textureless content
+that is good for a single small rectangle and poor for three large ones.
+
+\begin{figure*}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task1/figures/representative\_examples\_1.png}. Twelve
-representative test entries (three clean, one per corruption and severity), each
-the entry closest to its group's median SSIM, shown as rows of
-Target $|$ Input $|$ Output $|$ absolute error.}
-\caption{Representative Task 1 restorations: clean target, corrupted input,
-reconstruction and absolute error map. Entries are selected by median SSIM
-within their group, not by hand.}
+\resultfig[0.30\textheight]{task1_representative_examples_1.png}{0.48\textwidth}{From
+\path{outputs/task1/figures/representative_examples_1.png}.}\hfill
+\resultfig[0.30\textheight]{task1_representative_examples_2.png}{0.48\textwidth}{From
+\path{outputs/task1/figures/representative_examples_2.png}.}
+\caption{Representative Task 1 test restorations, rows of target, corrupted input,
+UDAE output and absolute error map, labelled with output PSNR (input PSNR) and
+SSIM. Left: three clean entries and salt-and-pepper low/medium/high; right: blur
+and occlusion at low/medium/high. Each entry is the one closest to its group's
+median SSIM, so the examples are typical rather than chosen by hand.}
 \label{fig:task1examples}
-\end{figure}
+\end{figure*}
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task1/figures/severity\_curves.png}. PSNR and SSIM against
-severity for each corruption type, for the UDAE, the oracle classical baseline
-and the corrupted input, with the UDAE's clean-input score as a reference line.}
-\caption{Restoration quality against severity.}
+\resultfig{task1_severity_curves.png}{0.74\textwidth}{From
+\path{outputs/task1/figures/severity_curves.png}.}
+\caption{Task 1 restoration quality against severity: PSNR (top) and SSIM (bottom)
+of the UDAE, the oracle classical baselines and the corrupted input for each
+corruption; the dotted line is the UDAE's score on clean inputs. The UDAE curve is
+almost flat at the clean-input level for salt-and-pepper and mild blur---the
+${\approx}25$~dB ceiling.}
 \label{fig:task1severity}
-\end{figure}
+\end{figure*}
 
 \subsubsection{Skip-connection ablation}
+\label{sec:task1skip}
 
+\IfFileExists{tables/task1_skip_ablation.tex}{%
 \begin{table}[t]
 \caption{Skip-connection ablation: one limited skip added at the stated
 resolution, same hyperparameters and epoch budget as the main model.}
 \label{tab:task1skip}
 \centering
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-Variant & Skip & Params & PSNR & Impulse surv. & Detail ratio \\
-\midrule
-\texttt{udae} & --- & \tbd & \tbd & \tbd & \tbd \\
-\texttt{udae\_skip16} & $16^2$ & \tbd & \tbd & \tbd & \tbd \\
-\texttt{udae\_skip32} & $32^2$ & \tbd & \tbd & \tbd & \tbd \\
-\texttt{udae\_skip128} & $128^2$ & \tbd & \tbd & \tbd & \tbd \\
-\bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill from \texttt{outputs/task1/tables/skip\_ablation.tex}}
+\footnotesize
+\resulttable{task1_skip_ablation.tex}{}
 \end{table}
-
-\todo{paragraph interpreting Table~\ref{tab:task1skip}: whether a limited skip
-improves clean and mildly corrupted inputs, whether impulse survival and the
-detail ratio confirm the predicted leak-versus-detail trade-off, and whether the
-evidence supports keeping the pure bottleneck as the main model}
+Table~\ref{tab:task1skip} gives the ablation.
+\todo{interpret Table~\ref{tab:task1skip}: whether a limited skip improves clean
+and mildly corrupted inputs, whether impulse survival and the detail ratio
+confirm the leak-versus-detail trade-off, and whether the evidence supports
+keeping the pure bottleneck}}{%
+The three limited-skip variants are implemented (\texttt{--skip-resolutions 16},
+\texttt{32}, \texttt{128}; \texttt{evaluate.py --compare} writes the comparison
+table) but were not trained: the free Colab GPU quota ran out after the main
+model (Section~\ref{sec:setup}), and the remaining GPU time went to the required
+Tasks~2--4. The two diagnostics above therefore stand for the main model alone.
+They already quantify both sides of the trade-off the ablation was designed to
+measure---no leak (impulse survival 0.0023) and a real detail cost (detail ratio
+0.498)---but they cannot show how much a limited skip would trade one for the
+other, which remains the most informative missing experiment of Task~1.}
 
 \subsection{Failure analysis}
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task1/figures/failure\_cases.png}. Six failure modes: the
-lowest-SSIM output for each input condition, plus the two corrupted entries
-where the model gains least PSNR over its own input.}
-\caption{Task 1 failure cases.}
+\resultfig[0.30\textheight]{task1_failure_cases.png}{\columnwidth}{From
+\path{outputs/task1/figures/failure_cases.png}.}
+\caption{Task 1 failure cases, selected automatically: the lowest-SSIM output for
+each input condition (rows 1--4) and the two corrupted entries on which the UDAE
+loses most PSNR relative to its own input (rows 5--6). Labels give output PSNR
+(input PSNR) and SSIM.}
 \label{fig:task1failures}
 \end{figure}
 
-\todo{discussion of at least four meaningful failure cases: detail lost through
-the bottleneck on clean inputs, residual impulses or texture confusion on heavy
-salt-and-pepper, unrecoverable high-frequency content on the strongest blur, and
-implausible inpainting of large occlusions. State for each whether the failure
-is a limitation of the bottleneck, of the training distribution
-(Section~\ref{sec:data}), or of the single-model design.}
+Figure~\ref{fig:task1failures} shows the failures, chosen by rank rather than by
+hand. They fall into four modes, and the same two photographs account for the
+four worst-SSIM rows.
+
+\emph{Black backgrounds read as occlusion.} The worst clean output (11.1~dB /
+0.438) and the worst high-occlusion output (10.0~dB / 0.305) are the same cat
+photographed against a uniformly black background. The UDAE fills much of that
+background with a bright grey haze, exactly as it fills occlusion rectangles: in
+training, large black regions are almost always masks to be inpainted, and a
+blind model cannot tell black content from a black mask. This is a limitation of
+the single-model design together with the training distribution; the Task~2
+classifier faces the same ambiguity, studied there through the share of dark
+pixels in clean photographs.
+
+\emph{Dense texture beyond the bottleneck.} The worst high salt-and-pepper
+(15.7~dB from 13.1~dB, SSIM 0.482) and high blur (15.6~dB, below its 19.1~dB
+input, SSIM 0.385) outputs are the same beagle on grass dense with small yellow
+flowers. The output replaces the texture with brownish blotches and shifts the
+colours: a scene whose information is mostly high-frequency texture cannot pass
+through 4{,}096 latent values, and under salt-and-pepper the flowers are also
+easily mistaken for impulses. This is a bottleneck limitation.
+
+\emph{Atypical colours.} A grey cat on a saturated purple backdrop with a low blur
+(input 37.0~dB) comes back at 15.7~dB because the backdrop is rendered
+blue-grey: the decoder pulls colours towards the statistics of the pet
+photographs it was trained on. This is a training-distribution limitation that
+the $L_1$ term only partly counteracts, since the selected loss gives it a weight
+of 0.285.
+
+\emph{No way to leave an image alone.} An occlusion rectangle that falls on an
+already black background leaves the input practically unchanged (87.3~dB), yet the
+UDAE returns 28.0~dB with the Sphynx cat's pink skin turned beige. Together with
+the clean and mild-blur results above, this is the price of universality: the
+model always re-synthesises the whole image. It is a limitation of the
+single-model design, and precisely what the identity branch of Tasks~2 and~3
+removes.
 
 \section{Task 2: Corruption Classification and Hard Routing}
 \label{sec:task2}
@@ -856,6 +1078,12 @@ third of each trial, so a configuration that suits impulse noise but fails on
 occlusion would survive longer than it deserves. After the study the three
 specialists are retrained independently on the full schedule.
 
+Unlike Task~1, the specialist search may also choose the latent \emph{resolution}:
+a $16\times16$ latent (encoder depth 3) keeps more spatial layout than an $8\times8$
+latent with the same number of values. The six presets, from $8\times8\times32$ to
+$16\times16\times64$, hold 2{,}048 to 16{,}384 values ($24\times$ to $3\times$
+compression), so every option is still a genuine bottleneck.
+
 \subsubsection{Hard routing}
 
 At inference the classifier produces $p = \mathrm{softmax}(C(\tilde{x}))$ and the
@@ -877,68 +1105,158 @@ both modes, which is asserted by a test.
 \subsubsection{Optuna search design}
 
 Two studies are run (Table~\ref{tab:task2search}): \texttt{task2\_classifier}
-(30 trials of 12 epochs, objective validation macro-F1) and
+(30 trials of 12 epochs, objective validation macro-F1, 45-minute cap) and
 \texttt{task2\_specialists} (20 trials of 6 epochs per specialist, objective the
-mean of the three best validation restoration scores). Both use the TPE sampler
-seeded at 42 with a median pruner.
+mean of the three best validation restoration scores, 80-minute cap). Both use
+the TPE sampler seeded at 42 with a median pruner. The classifier's channel
+presets are \texttt{16-32-64-128}, \texttt{32-64-128-256},
+\texttt{48-96-192-384} and the five-stage \texttt{32-64-128-256-256}, which trade
+width against depth at 0.21--1.89 GMAC per image; the batch sizes are multiples
+of four so that every batch is exactly balanced.
 
 \begin{table}[t]
-\caption{Optuna search spaces for Task 2.}
+\caption{Optuna search spaces for Task 2 and the selected configurations (best
+trials 1 and 10), committed as \texttt{configs/task2\_classifier.yaml} and
+\texttt{configs/task2\_specialists.yaml}.}
 \label{tab:task2search}
 \centering
-\begin{tabular}{@{}llp{2.6cm}@{}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lll@{}}
 \toprule
-Parameter & Range & Rationale \\
+Parameter & Range & Selected \\
 \midrule
-\multicolumn{3}{@{}l}{\emph{Classifier} (\texttt{task2\_classifier})} \\
-Learning rate & $10^{-4}$--$3\times10^{-3}$ & log-uniform \\
-Batch size & $\{32, 64, 128\}$ & multiples of 4 for exact balance \\
-Channels & four presets & width against depth at matched cost \\
-Convs per stage & $\{1, 2\}$ & depth; also the Task 3 gate cost \\
-Dropout & $0.0$--$0.5$ & head regularisation \\
-Weight decay & $10^{-5}$--$10^{-1}$ & log-uniform, decoupled \\
+\multicolumn{3}{@{}l}{\emph{Classifier} (\texttt{task2\_classifier}, 30 trials $\times$ 12 epochs)} \\
+Learning rate & $10^{-4}$--$3\times10^{-3}$ (log) & $1.70\times10^{-3}$ \\
+Batch size & $\{32, 64, 128\}$ & 32 \\
+Channels & four presets & \texttt{32-64-128-256} \\
+Convs per stage & $\{1, 2\}$ & 1 \\
+Dropout (head) & $0.0$--$0.5$ & 0.146 \\
+Weight decay & $10^{-5}$--$10^{-1}$ (log) & $2.9\times10^{-4}$ \\
+Validation macro-F1 & & 0.9959 \\
 \midrule
-\multicolumn{3}{@{}l}{\emph{Specialists} (\texttt{task2\_specialists})} \\
-Learning rate & $10^{-4}$--$3\times10^{-3}$ & log-uniform \\
-Batch size & $\{16, 32, 64\}$ & 184/92/46 steps per epoch \\
-Base channels & $\{16, 32, 48\}$ & 0.7--5.8 GMAC per image \\
-Bottleneck & six latent shapes & $8^2$ or $16^2$ by 16--128 channels \\
-$\alpha$ (loss weight) & $0.4$--$0.95$ & around the brief's 0.8 \\
+\multicolumn{3}{@{}l}{\emph{Specialists} (\texttt{task2\_specialists}, 20 trials $\times$ 6 epochs)} \\
+Learning rate & $10^{-4}$--$3\times10^{-3}$ (log) & $2.37\times10^{-3}$ \\
+Batch size & $\{16, 32, 64\}$ & \textbf{16} (edge) \\
+Base channels & $\{16, 32, 48\}$ & 48 \\
+Latent shape & six presets & $16\times16\times32$ ($6\times$) \\
+$\alpha$ ($L_1$ weight) & $0.4$--$0.95$ & \textbf{0.516} \\
+Mean validation score & & 0.6819 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsubsection{Search results}
+
+\emph{Classifier.} All 30 trials ran, and took only 15.6 minutes of trial time,
+well inside the cap: the median pruner stopped 25 of them, mostly after their
+fourth epoch, and only five completed. The best trial was trial~1, with
+validation macro-F1 0.9959 (lr $1.70\times10^{-3}$, batch 32, channels
+\texttt{32-64-128-256}, one convolution per stage, dropout 0.146, weight decay
+$2.9\times10^{-4}$). The pruning rate is itself a finding: the objective is nearly
+saturated. Even pruned trials had reached macro-F1 of about 0.98 within three or
+four epochs (trial~29: 0.9783), and the five completed trials span only
+0.992--0.996 (Fig.~\ref{fig:task2optuna}, left). Detecting the corruption type is
+easy for a small CNN on this data, so the search mostly selected an
+\emph{inexpensive} configuration---the narrower four-stage network with one
+convolution per stage, 0.39\,M parameters, which is also the cheaper gate for
+Task~3. With five completed trials so close together, the importance estimate of
+this study is not informative and is not used.
+
+\emph{Specialists.} Exactly 20 trials finished, 12 completed and 8 pruned, none
+failed, in 61.5 minutes of trial time. The best was trial~10, with a mean
+validation score of 0.6819 (salt-and-pepper 0.7006, blur 0.7295, occlusion
+0.6155), and its configuration is shared by the three specialists: lr
+$2.37\times10^{-3}$, batch 16, base width 48, latent $16 \times 16 \times 32 = 8{,}192$
+values ($6\times$ compression) and $\alpha = 0.516$; each specialist has 3.97\,M
+parameters. The learning rate dominates the importance estimate (0.76), followed
+by $\alpha$ (0.20; Fig.~\ref{fig:task2optuna}, right). The study also gives a free
+estimate of run-to-run noise. The first session was stopped after about eleven
+minutes, while the checkpoint incident described in the AI-use appendix was being
+fixed; trials 0--2 had been saved and the resumed study continued from trial~3.
+Because the TPE sampler was re-created with the same seed, it proposed the
+parameters of trials 0--2 again as trials 3--5, and the repeated runs differ by
+only $2$--$4\times10^{-4}$ in score (0.6046 against 0.6042, 0.6045 against
+0.6047). Score differences of that size between trials are therefore noise:
+trials 10, 12 and 13 (0.6819, 0.6810, 0.6806), which share every categorical
+choice and differ only slightly in learning rate and $\alpha$, are effectively
+tied, so the selected configuration is a robust region rather than a single lucky
+trial. Three of the 20 trials were spent on these replays, a cost of the resume
+logic worth fixing.
+
+Three observations carry over from Task~1. \emph{Loss weighting:} $\alpha$ again
+settled well below the brief's 0.8 (0.516; Task~1 chose 0.285), so the searches
+consistently moved weight towards the SSIM term. \emph{Short-budget bias:} the
+smallest batch size won again. \emph{Speed of learning:} after only six epochs, the
+best trial's blur specialist already slightly exceeded the fully trained
+universal model on the same 184 validation blur entries (score 0.7295 against
+0.7245 after 60 epochs).
+
+\textbf{A confound for the cross-task comparison.} The specialists selected a
+latent twice as large as Task~1's: 8{,}192 values ($6\times$ compression) against
+4{,}096 ($12\times$). Both are genuine bottlenecks, but part of any advantage of
+hard routing over the universal model may come from the larger bottleneck
+rather than from specialisation alone; the Task~1 search range, capped at
+4{,}096 values to keep a meaningful bottleneck, did not offer the larger latent.
+The comparisons in Sections~\ref{sec:task2} and~\ref{sec:task3} are read with this
+in mind. The three specialists together have 11.9\,M parameters, against 9.31\,M
+for the UDAE.
+
+\begin{figure*}[t]
+\centering
+\resultfig{task2_classifier_optuna_intermediate_values.png}{0.32\textwidth}{From
+\path{outputs/task2/optuna/task2_classifier/intermediate_values.png}.}\hfill
+\resultfig{task2_specialists_optuna_optimization_history.png}{0.32\textwidth}{From
+\path{outputs/task2/optuna/task2_specialists/optimization_history.png}.}\hfill
+\resultfig{task2_specialists_optuna_param_importances.png}{0.32\textwidth}{From
+\path{outputs/task2/optuna/task2_specialists/param_importances.png}.}
+\caption{Optuna studies of Task~2. Left: validation macro-F1 per epoch of every
+classifier trial; all trials approach 1.0 within a few epochs, and the median
+pruner stops most of them at the fourth epoch. Centre and right: the specialist
+study's optimisation history and parameter importances.}
+\label{fig:task2optuna}
+\end{figure*}
+
+\subsubsection{Final training}
+
+The classifier was retrained for 60 epochs (early-stopping patience 15) and each
+specialist for 40 epochs (patience 10), independently and with its own seed,
+from the committed configurations. These runs were first made on Colab and are
+being repeated on Kaggle, with identical configurations, after the Colab GPU
+quota ran out (Section~\ref{sec:setup}); the results below come from the Kaggle
+run. \todo{best epoch and validation macro-F1 of the final classifier, best epoch
+and validation score of each specialist, and epoch times on the Kaggle T4, from
+the Kaggle logs or Weights \& Biases}
 
 \subsection{Results}
 
 \begin{table}[t]
-\caption{Task 2 classifier on the test manifest (36{,}690 entries, balanced by
-construction, so accuracy equals micro-averaged F1).}
+\caption{Task 2 classifier on the test manifest: per-class precision, recall and
+F1 (3{,}669 clean entries and 11{,}007 per corruption), macro averages and overall
+accuracy.}
 \label{tab:task2clf}
 \centering
+\resulttable{task2_classifier_test_per_class.tex}{%
 \begin{tabular}{@{}lcccc@{}}
 \toprule
-Class & Precision & Recall & F1 & Support \\
+Class & Precision & Recall & F1 & $n$ \\
 \midrule
-Clean & \tbd & \tbd & \tbd & 3{,}669 \\
-Salt-and-pepper & \tbd & \tbd & \tbd & 11{,}007 \\
-Blur & \tbd & \tbd & \tbd & 11{,}007 \\
-Occlusion & \tbd & \tbd & \tbd & 11{,}007 \\
-\midrule
-Macro average & \tbd & \tbd & \tbd & 36{,}690 \\
+clean & \tbd & \tbd & \tbd & 3669 \\
+salt & \tbd & \tbd & \tbd & 11007 \\
+blur & \tbd & \tbd & \tbd & 11007 \\
+occlusion & \tbd & \tbd & \tbd & 11007 \\
+macro avg & \tbd & \tbd & \tbd & 36690 \\
+accuracy & & & \tbd & 36690 \\
 \bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill from
-\texttt{outputs/task2/tables/classifier\_test\_per\_class.tex}; also state
-overall accuracy}
+\end{tabular}%
+\missingtable{task2_classifier_test_per_class.tex}{outputs/task2/tables/classifier_test_per_class.tex}}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task2/figures/classifier\_confusion\_test.png}. Row-normalised
-$4\times4$ confusion matrix, rows = true class, in the order clean, salt,
-blur, occlusion.}
+\resultfig{task2_classifier_confusion_test.png}{0.85\columnwidth}{From
+\path{outputs/task2/figures/classifier_confusion_test.png} (Kaggle run):
+row-normalised $4\times4$ confusion matrix, rows = true class (clean, salt,
+blur, occlusion), counts in brackets.}
 \caption{Normalised confusion matrix of the corruption classifier on the test
 manifest. Rows are true classes and sum to one, so each row is a recall profile;
 this is the same normalisation used for the Task 3 routing matrix, which makes
@@ -946,16 +1264,17 @@ the two directly comparable.}
 \label{fig:task2confusion}
 \end{figure}
 
-\todo{paragraph interpreting Figure~\ref{fig:task2confusion}: which confusions
-dominate, and whether they are concentrated at the low severity levels}
+\todo{paragraph interpreting Table~\ref{tab:task2clf} and
+Figure~\ref{fig:task2confusion} from the Kaggle run: overall accuracy and
+macro-F1, which confusions dominate, and whether they are concentrated at the low
+severity levels (\path{outputs/task2/tables/classifier_test_by_type_level.csv})}
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task2/figures/classifier\_blur\_detection.png}. Probability of
-predicting blur and of predicting clean, against the actual blur strength
-$s(k,\sigma)$ of equation~(\ref{eq:blurstrength}), with 95\% Wilson intervals;
-strength 0 denotes clean photographs.}
+\resultfig{task2_classifier_blur_detection.png}{\columnwidth}{From
+\path{outputs/task2/figures/classifier_blur_detection.png} (Kaggle run):
+P(blur) and P(clean) against the applied blur strength $s(k,\sigma)$ with 95\%
+Wilson intervals; strength 0 = clean photographs.}
 \caption{Clean-versus-blur discrimination as a function of the true blur
 strength. The analysis uses the applied-kernel strength rather than $\sigma$, for
 the reason given in Section~\ref{sec:data}.}
@@ -969,25 +1288,31 @@ measure~\cite{pech2000diatom} with Wilson intervals~\cite{wilson1927probable};
 (ii) dark image content being called occlusion, and black occlusion rectangles
 on already-dark fur going undetected}
 
-\begin{table}[t]
-\caption{Hard-routed restoration: oracle routing (true label) against predicted
-routing (classifier), per corruption type.}
+\begin{table*}[t]
+\caption{Hard-routed restoration on the test manifest: oracle routing (true label)
+against predicted routing (classifier) per corruption type and severity, with
+routing accuracy, PSNR and SSIM in both modes, the number of misrouted entries and
+the number of harmful misroutings (predicted routing at least 1~dB worse than
+oracle routing).}
 \label{tab:task2routing}
 \centering
-\begin{tabular}{@{}lccccc@{}}
+\footnotesize
+\resulttable{task2_routing_oracle_vs_predicted.tex}{%
+\begin{tabular}{@{}llcccccccc@{}}
 \toprule
-Condition & Route acc. & PSNR$_\text{or}$ & PSNR$_\text{pr}$ & $\Delta$ & SSIM$_\text{pr}$ \\
+Type & Level & $n$ & Route acc. & PSNR or. & PSNR pr. & SSIM or. & SSIM pr. & Misr. & Harmful \\
 \midrule
-Clean & \tbd & exact & \tbd & \tbd & \tbd \\
-Salt-and-pepper & \tbd & \tbd & \tbd & \tbd & \tbd \\
-Blur & \tbd & \tbd & \tbd & \tbd & \tbd \\
-Occlusion & \tbd & \tbd & \tbd & \tbd & \tbd \\
+clean & none & 3669 & \tbd & exact & \tbd & 1.0000 & \tbd & \tbd & \tbd \\
+salt & low & 3669 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill from
-\texttt{outputs/task2/tables/routing\_oracle\_vs\_predicted.tex}}
-\end{table}
+\end{tabular}%
+\missingtable{task2_routing_oracle_vs_predicted.tex}{outputs/task2/tables/routing_oracle_vs_predicted.tex}}
+\end{table*}
+
+\todo{paragraph interpreting Table~\ref{tab:task2routing}: the specialists' own
+quality under oracle routing against the UDAE of Table~\ref{tab:task1bylevel}
+(bearing in mind the bottleneck confound above), and how close predicted routing
+comes to oracle routing}
 
 \textbf{Clean inputs and the PSNR cap.} Under oracle routing every clean input
 passes through the identity bypass, so the output equals the target exactly:
@@ -1002,22 +1327,43 @@ photographs receive a finite PSNR that is reported separately.
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task2/figures/routing\_failures.png}. Worst harmful misroutings
-per confusion pair, showing target, input, oracle output, predicted output and
-the four classifier probabilities.}
+\resultfig{task2_routing_failures.png}{\columnwidth}{From
+\path{outputs/task2/figures/routing_failures.png} (Kaggle run): worst harmful
+misroutings per confusion pair, showing target, input, oracle output, predicted
+output and the four classifier probabilities.}
 \caption{Cases where a classifier error causes a restoration failure.}
 \label{fig:task2failures}
 \end{figure}
 
-\todo{discussion of the misrouting table
-(\texttt{outputs/task2/\allowbreak tables/routing\_misrouting.tex}): for each (true,
-routed-to) pair, how many entries, at which severities, and the mean PSNR change
-relative to oracle routing. Separate harmful misroutings ($\geq 1$~dB worse)
-from neutral and \emph{beneficial} ones: a mild blur routed to the identity can
-score better than the blur specialist's reconstruction if the bottleneck loses
-more detail than the blur itself removed. Report beneficial misroutings
-explicitly rather than omitting them.}
+\begin{table}[t]
+\caption{Every classifier confusion on the test manifest: number of entries, share
+of the true type, mean PSNR and SSIM change of predicted relative to oracle
+routing, and how many misroutings were harmful, neutral or beneficial
+($\pm1$~dB).}
+\label{tab:task2misrouting}
+\centering
+\resulttable{task2_routing_misrouting.tex}{%
+\begin{tabular}{@{}llccc@{}}
+\toprule
+True & Routed to & $n$ & $\Delta$PSNR & Harmful / neutral / benef. \\
+\midrule
+clean & blur & \tbd & \tbd & \tbd \\
+\bottomrule
+\end{tabular}%
+\missingtable{task2_routing_misrouting.tex}{outputs/task2/tables/routing_misrouting.tex}}
+\end{table}
+
+\todo{discussion of Table~\ref{tab:task2misrouting} and
+Figure~\ref{fig:task2failures}: for each (true, routed-to) pair, how many entries,
+at which severities, and the mean PSNR change relative to oracle routing.
+Separate harmful misroutings ($\geq 1$~dB worse) from neutral and
+\emph{beneficial} ones: a mild blur routed to the identity can score better than
+the blur specialist's reconstruction if the bottleneck loses more detail than the
+blur itself removed. Report beneficial misroutings explicitly rather than
+omitting them, and relate the clean-to-occlusion confusions to dark image
+content (\path{outputs/task2/tables/classifier_dark_regions.csv}) and the
+clean-to-blur confusions to natural softness
+(\path{outputs/task2/figures/classifier_sharpness.png})}
 
 \section{Task 3: Soft Mixture-of-Experts Restoration}
 \label{sec:task3}
@@ -1217,88 +1563,137 @@ score is logged, and reported test metrics are never capped this way.
 The study \texttt{task3\_moe} searches the five parameters the brief names
 (Table~\ref{tab:task3search}), with trial~0 enqueued at the brief's starting
 values $\lambda_1 = 0.8$, $\lambda_s = 0.2$, $\lambda_c = 0.1$,
-$\lambda_b = 0.01$. Trials run one warm-up and four joint epochs. Pruning has two
-paths, both recorded in the trial attributes: the median pruner for weak
-configurations, and the collapse criterion above---a task-specific stopping rule
-that no generic pruner can express, and which the brief explicitly permits. A
-diverged loss is converted into a prune with its reason rather than a crashed
-trial, so one bad learning rate cannot end a session.
+$\lambda_b = 0.01$. Pruning has two paths, both recorded in the trial
+attributes: the median pruner for weak configurations, and the collapse criterion
+above---a task-specific stopping rule that no generic pruner can express, and
+which the brief explicitly permits. A diverged loss is converted into a prune with
+its reason rather than a crashed trial, so one bad learning rate cannot end a
+session.
+
+\textbf{Budget actually used.} The study was planned as 20 trials of one warm-up
+and four joint epochs, followed by a final run of 2 warm-up and 20 joint epochs.
+Because the Colab GPU quota ran out on the deadline day, Task~3 was trained on
+Kaggle with a reduced budget: \textbf{6 trials of one warm-up and three joint
+epochs} (25-minute cap), and a \textbf{final run of 2 warm-up and 10 joint
+epochs}. Six trials are the brief's reference configuration plus five random
+proposals---the TPE sampler only starts modelling after ten random start-up
+trials---so this search is a small random search around the reference point
+rather than a model-based optimisation, a limitation stated in
+Section~\ref{sec:limitations}.
 
 \begin{table}[t]
-\caption{Optuna search space for Task 3 (study \texttt{task3\_moe}).}
+\caption{Optuna search space for Task 3 (study \texttt{task3\_moe}); trial~0 is the
+brief's starting configuration.}
 \label{tab:task3search}
 \centering
-\begin{tabular}{@{}llp{2.9cm}@{}}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llp{2.3cm}c@{}}
 \toprule
-Parameter & Range & Rationale \\
+Parameter & Range & Rationale & Selected \\
 \midrule
-Joint learning rate & $10^{-5}$--$3\times10^{-4}$ & log; capped at the warm-up rate so the joint stage stays gentler \\
-Temperature $\tau$ & $0.3$--$3.0$ & log; near-hard to near-uniform routing \\
-$\lambda_c$ & $0.01$--$1.0$ & log; a decade either side of 0.1 \\
-$\lambda_b$ & $10^{-3}$--$10^{-1}$ & log; contains Switch's $\alpha = 10^{-2}$ \\
-$\alpha$ ($\lambda_1 = \alpha$, $\lambda_s = 1-\alpha$) & $0.5$--$0.95$ & keeps the reconstruction scale constant \\
+Joint learning rate & $10^{-5}$--$3\times10^{-4}$ & log; capped at the warm-up rate & \tbd \\
+Temperature $\tau$ & $0.3$--$3.0$ & log; near-hard to near-uniform & \tbd \\
+$\lambda_c$ & $0.01$--$1.0$ & log; a decade either side of 0.1 & \tbd \\
+$\lambda_b$ & $10^{-3}$--$10^{-1}$ & log; contains Switch's $10^{-2}$ & \tbd \\
+$\alpha$ ($\lambda_1 = \alpha$, $\lambda_s = 1-\alpha$) & $0.5$--$0.95$ & constant reconstruction scale & \tbd \\
 \bottomrule
 \end{tabular}
+\\[2pt]
+\todo{fill the Selected column from \path{outputs/task3/best_config.yaml} and
+state the best trial, its validation score and the number of completed, pruned
+and collapse-pruned trials (\path{outputs/task3/optuna/task3_moe/trials.csv})}
 \end{table}
+
+\begin{figure*}[t]
+\centering
+\resultfig{task3_optuna_optimization_history.png}{0.42\textwidth}{From
+\path{outputs/task3/optuna/task3_moe/optimization_history.png}.}\hfil
+\resultfig{task3_optuna_intermediate_values.png}{0.42\textwidth}{From
+\path{outputs/task3/optuna/task3_moe/intermediate_values.png}.}
+\caption{Optuna study \texttt{task3\_moe} (six trials on Kaggle): optimisation
+history (left) and validation score per epoch of every trial, including pruned
+ones (right).}
+\label{fig:task3optuna}
+\end{figure*}
 
 \subsection{Results}
 
+\todo{final training on Kaggle (2 warm-up + 10 joint epochs): best epoch,
+validation score, epoch time, and the routing-collapse check at the best epoch,
+from the Kaggle log or Weights \& Biases; add the validation curves exported from
+Weights \& Biases as \path{report/figures/task3_training_curves.png} if space
+allows}
+
 \begin{table}[t]
-\caption{Soft mixture-of-experts restoration on the test manifest, per
-corruption and severity.}
+\caption{Soft mixture-of-experts restoration on the test manifest, per input type
+and severity. PSNR* excludes outputs identical to the target (PSNR capped at
+100~dB); ``Exact'' counts them.}
 \label{tab:task3results}
 \centering
-\begin{tabular}{@{}lccc@{}}
+\resulttable{task3_test_by_type_level.tex}{%
+\begin{tabular}{@{}llccccc@{}}
 \toprule
-Condition & Low & Medium & High \\
+Type & Level & $n$ & PSNR & PSNR* & SSIM & Exact \\
 \midrule
-Salt-and-pepper & \tbd & \tbd & \tbd \\
-Blur & \tbd & \tbd & \tbd \\
-Occlusion & \tbd & \tbd & \tbd \\
-\midrule
-Clean & \multicolumn{3}{c}{\todo{PSNR / SSIM and number of near-exact entries}} \\
+clean & none & 3669 & \tbd & \tbd & \tbd & \tbd \\
+salt & low & 3669 & \tbd & \tbd & \tbd & \tbd \\
 \bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill with PSNR / SSIM from
-\texttt{outputs/task3/tables/by\_type\_level.tex}}
+\end{tabular}%
+\missingtable{task3_test_by_type_level.tex}{outputs/task3/tables/test_by_type_level.tex}}
 \end{table}
 
 \begin{table*}[t]
-\caption{Cross-task comparison on identical test entries: the universal model,
-hard routing in both modes, and the soft mixture. PSNR columns exclude entries at
-the cap; \emph{exact} counts them.}
+\caption{Cross-task comparison on identical test entries: the universal model
+(Task~1), hard routing with oracle and predicted routes (Task~2) and the soft
+mixture (Task~3). PSNR* excludes outputs identical to the target, so the clean row
+of hard routing is often empty; the clean row is best compared by SSIM.}
 \label{tab:crosstask}
 \centering
+\footnotesize
+\resulttable{task3_comparison_by_type.tex}{%
 \begin{tabular}{@{}lcccccccc@{}}
 \toprule
-\multirow{2}{*}{Condition} & \multicolumn{2}{c}{Task 1 universal} & \multicolumn{2}{c}{Task 2 oracle} & \multicolumn{2}{c}{Task 2 predicted} & \multicolumn{2}{c}{Task 3 soft MoE} \\
+\multirow{2}{*}{Input} & \multicolumn{2}{c}{Task 1 universal} & \multicolumn{2}{c}{Task 2 oracle} & \multicolumn{2}{c}{Task 2 predicted} & \multicolumn{2}{c}{Task 3 soft MoE} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
- & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM \\
+ & PSNR* & SSIM & PSNR* & SSIM & PSNR* & SSIM & PSNR* & SSIM \\
 \midrule
-Clean & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
-Salt-and-pepper & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
-Blur & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
-Occlusion & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
-\midrule
-Corrupted (pooled) & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+clean & 25.12 & 0.8282 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+salt & 25.10 & 0.8251 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+blur & 24.92 & 0.8005 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+occlusion & 21.45 & 0.7279 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill from \texttt{outputs/task3/tables/} produced by
-\texttt{src/task3/compare.py}; add the paired per-entry win rate of the soft
-mixture over hard predicted routing, split by whether the Task 2 classifier was
-correct --- the case where soft routing is expected to pay off}
+\end{tabular}%
+\missingtable{task3_comparison_by_type.tex}{outputs/task3/tables/comparison_by_type.tex}}
 \end{table*}
+
+\begin{figure*}[t]
+\centering
+\resultfig{task3_comparison_psnr.png}{0.49\textwidth}{From
+\path{outputs/task3/figures/comparison_psnr.png}.}\hfill
+\resultfig{task3_comparison_ssim.png}{0.49\textwidth}{From
+\path{outputs/task3/figures/comparison_ssim.png}.}
+\caption{Cross-task comparison per input type and severity: PSNR* (left) and SSIM
+(right) of the universal model, hard routing (oracle and predicted) and the soft
+mixture on identical test entries.}
+\label{fig:crosstask}
+\end{figure*}
+
+\todo{paragraph interpreting Table~\ref{tab:crosstask} and
+Fig.~\ref{fig:crosstask}: which design is best on which corruption; whether the
+identity branch removes the ${\approx}25$~dB ceiling of Task~1 on clean and mildly
+corrupted inputs; the paired per-entry win rate and mean PSNR gain of the soft
+mixture over hard predicted routing, overall and split by whether the Task~2
+classifier was right or wrong (\path{outputs/task3/tables/comparison_paired.csv}),
+remembering the bottleneck confound of Section~\ref{sec:task2}}
 
 \subsubsection{Gating analysis}
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task3/figures/routing\_heatmap\_type\_level.png}. Mean routing
-weight of each of the four branches (columns) for every true corruption type and
-severity level (rows), each cell labelled with its value.}
+\resultfig{task3_routing_heatmap_type_level.png}{\columnwidth}{From
+\path{outputs/task3/figures/routing_heatmap_type_level.png}: mean weight of the
+four branches (columns) for every true type and severity (rows).}
 \caption{Average expert weights for every true corruption type and severity
 level. Rows sum to one.}
 \label{fig:task3heatmap}
@@ -1306,63 +1701,95 @@ level. Rows sum to one.}
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task3/figures/weight\_distributions.png}. Distribution of each
-branch weight within each true class.}
+\resultfig{task3_weight_distributions.png}{\columnwidth}{From
+\path{outputs/task3/figures/weight_distributions.png}: distribution of each branch
+weight within each true class.}
 \caption{Routing-weight distributions per true class.}
 \label{fig:task3weights}
 \end{figure}
 
 \begin{table}[t]
-\caption{Expert activity: is any branch inactive, and does any branch dominate
-unrelated inputs?}
+\caption{Expert activity on the test set: class-balanced usage of each branch
+(1/4 under balanced perfect routing), mean weight on its own class and on the
+other classes, the largest weight on any other class, and how often it dominates
+other classes.}
 \label{tab:task3activity}
 \centering
-\begin{tabular}{@{}lcccc@{}}
+\resulttable{task3_expert_activity.tex}{%
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Branch & Usage & Own class & Off-class & Worst off-class \\
+Branch & Usage & Own & Others & Max other & on \\
 \midrule
-Identity & \tbd & \tbd & \tbd & \tbd \\
-Salt-and-pepper & \tbd & \tbd & \tbd & \tbd \\
-Blur & \tbd & \tbd & \tbd & \tbd \\
-Occlusion & \tbd & \tbd & \tbd & \tbd \\
+identity & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \bottomrule
-\end{tabular}
-\\[2pt]
-\todo{fill from \texttt{outputs/task3/tables/expert\_activity.tex}; state the
-collapse verdict and the mean normalised routing entropy}
+\end{tabular}%
+\missingtable{task3_expert_activity.tex}{outputs/task3/tables/expert_activity.tex}}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\placeholderfig{Figure files:
-\texttt{outputs/task3/figures/gating\_dominant.png} and
-\texttt{gating\_spread.png}. Entries with the lowest and highest routing entropy
-per class, each showing all four branch outputs with their weights, the mixed
-output and the target.}
-\caption{Inputs on which one expert dominates (low routing entropy) and inputs
-on which the weights are distributed across several experts (high entropy).
-Examples are selected by entropy rather than by hand, so they are reproducible.}
+\resultfig[0.24\textheight]{task3_gating_dominant.png}{0.49\textwidth}{From
+\path{outputs/task3/figures/gating_dominant.png}.}\hfill
+\resultfig[0.24\textheight]{task3_gating_spread.png}{0.49\textwidth}{From
+\path{outputs/task3/figures/gating_spread.png}.}
+\caption{Inputs on which one expert dominates (left, lowest routing entropy per
+true class) and inputs on which the weights are spread across several branches
+(right, highest entropy), each with all four branch outputs and their weights,
+the mixed output and the target. Examples are selected by entropy rather than by
+hand, so they are reproducible.}
 \label{fig:task3gating}
-\end{figure}
+\end{figure*}
 
 \todo{paragraph interpreting Figures~\ref{fig:task3heatmap}--\ref{fig:task3gating}
 and Table~\ref{tab:task3activity}: how routing weight varies with severity (are
 mild corruptions routed more softly?), whether any expert became inactive or
-dominates unrelated inputs, what the selected $\tau$ implies about where the
-system sits between hard and uniform routing, and whether the balance weight
-selected by Optuna was large enough to matter}
+dominates unrelated inputs (collapse verdict and mean normalised entropy from
+\path{outputs/task3/tables/routing_entropy.tex}), what the selected $\tau$ implies
+about where the system sits between hard and uniform routing, and whether the
+balance weight was large enough to matter. Expectation recorded before the run:
+because the gate starts from a near-perfect classifier, routing on the standard
+test set is likely to be almost one-hot, and the two-corruption experiment is
+where soft routing can differ}
 
 \subsection{Failure analysis}
 
-\todo{discussion of the worst mis-routed entries
-(\texttt{outputs/task3/figures/}), of whether soft routing recovers cases where
-the Task 2 classifier was confidently wrong, and of cases where blending made
-the result worse than hard routing would have. Include the optional
-two-corruption experiment (\texttt{manifests/pets\_mixed\_manifest.json}),
-clearly labelled as beyond the brief's corruption definitions, reporting the
-mean weights per combination and the share of entries whose two largest weights
-are exactly the two corruptions present.}
+\begin{figure}[t]
+\centering
+\resultfig[0.24\textheight]{task3_failures_misrouted.png}{\columnwidth}{From
+\path{outputs/task3/figures/failures_misrouted.png}: the six lowest-SSIM entries
+whose largest weight is not on the true branch.}
+\caption{Task 3 failure cases: mis-routed entries with the lowest SSIM.}
+\label{fig:task3failures}
+\end{figure}
+
+\begin{table}[t]
+\caption{Beyond the brief: two corruptions per image (medium severity). Mean
+mixture weights per combination and the share of entries whose two largest
+weights are exactly the two corruptions present.}
+\label{tab:task3mixed}
+\centering
+\resulttable{task3_mixed_routing.tex}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Input & $n$ & Identity & Salt & Blur & Occl. & Top-2 = parts \\
+\midrule
+salt+blur & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\bottomrule
+\end{tabular}%
+\missingtable{task3_mixed_routing.tex}{outputs/task3/mixed/mixed_routing.tex}}
+\end{table}
+
+\todo{discussion of Figure~\ref{fig:task3failures} (also
+\path{outputs/task3/figures/failures.png}): the worst mis-routed entries, whether
+soft routing recovers cases where the Task~2 classifier was confidently wrong, and
+cases where blending made the result worse than hard routing would have. Then the
+optional two-corruption experiment (\path{manifests/pets_mixed_manifest.json};
+Table~\ref{tab:task3mixed}, restoration in
+\path{outputs/task3/mixed/mixed_summary.tex}, examples in
+\path{outputs/task3/mixed/mixed_examples.png}), clearly labelled as beyond the
+brief's corruption definitions: mean weights per combination, the share of
+entries whose two largest weights are the two corruptions present, and soft
+against hard routing on these inputs}
 
 \section{Task 4: Style-Conditioned Face-to-Sketch Generation}
 \label{sec:task4}
@@ -1473,101 +1900,218 @@ in evaluation mode.
 
 \subsubsection{Optuna search design}
 
-The study \texttt{task4\_cgan} searches the generator and discriminator learning
-rates, batch size, base channel count, dropout rate, style-embedding dimension
-and $\lambda_{L_1}$. Because GAN training is expensive, trials use a reduced
-epoch budget and the selected configuration is retrained on the full schedule, as
-the brief permits.
-\todo{complete search-space table with the exact ranges from
-\texttt{src/task4/optuna\_search.py}, the number of completed and pruned trials,
-and the selected configuration}
+The study \texttt{task4\_cgan} searches the seven quantities the brief names
+(Table~\ref{tab:task4search}). The generator and discriminator share one base
+channel count and one style-embedding dimension, which keeps their capacities
+balanced and the search space small. Trial~0 is the pix2pix and brief reference
+point. The objective is the best validation \emph{sketch score},
+$0.5\,\mathrm{SSIM} + 0.5\,(1 - L_1)$ on the validation split only, which involves
+neither $\lambda_{L_1}$ nor the discriminator, so trials with different loss
+weights remain comparable; the sharpness diagnostic introduced below is recorded
+for every trial so that the blur a large $\lambda_{L_1}$ induces stays visible.
+TPE is seeded at 42 and the median pruner waits for four trials and three epochs.
 
-\subsection{Results}
+The final run trains the selected configuration from scratch for 120 epochs with
+the pix2pix schedule: a constant learning rate for the first half, then linear
+decay to zero. The search was planned as 20 trials of 10 epochs; on Kaggle,
+after the Colab quota ran out, it was reduced to \textbf{10 trials of 8 epochs}
+(30-minute cap). Ten trials are the reference configuration and nine random
+start-up proposals---TPE begins modelling only after ten---so, as for Task~3,
+the search is effectively a small random search around the reference point.
 
 \begin{table}[t]
-\caption{Task 4 results on the official FS2K test set (1{,}046 pairs), per
-style. Note the support: style 3 has only 46 test pairs.}
-\label{tab:task4}
+\caption{Optuna search space for Task 4 (study \texttt{task4\_cgan}, 10 trials of
+8 epochs on Kaggle), the reference trial~0, and the selected configuration.}
+\label{tab:task4search}
 \centering
-\begin{tabular}{@{}lcccc@{}}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lllcc@{}}
 \toprule
-Style & Pairs & SSIM & LPIPS & $L_1$ \\
+Parameter & Range & Scale & Trial 0 & Selected \\
 \midrule
-Style 1 & 619 & \tbd & \tbd & \tbd \\
-Style 2 & 381 & \tbd & \tbd & \tbd \\
-Style 3 & 46 & \tbd & \tbd & \tbd \\
-\midrule
-Macro average & --- & \tbd & \tbd & \tbd \\
-Pooled & 1{,}046 & \tbd & \tbd & \tbd \\
+$\eta_G$ & $5\times10^{-5}$--$5\times10^{-4}$ & log & $2\times10^{-4}$ & \tbd \\
+$\eta_D$ & $5\times10^{-5}$--$5\times10^{-4}$ & log & $2\times10^{-4}$ & \tbd \\
+Batch size & $\{4, 8, 16\}$ & cat. & 8 & \tbd \\
+Base channels & $\{32, 48, 64\}$ & cat. & 64 & \tbd \\
+Dropout & $0.0$--$0.5$ & uniform & 0.5 & \tbd \\
+Style dim. & $\{8, 16, 32\}$ & cat. & 16 & \tbd \\
+$\lambda_{L_1}$ & $25$--$200$ & log & 100 & \tbd \\
 \bottomrule
 \end{tabular}
 \\[2pt]
-\todo{also report FID on the full test set only, with the sample size and the
-resize path stated; and the seen/unseen (source, style) breakdown of
-Section~\ref{sec:data}}
+\todo{fill the Selected column from \path{outputs/task4/best_config.yaml}; state the
+best trial, its validation sketch score and the numbers of completed and pruned
+trials (\path{outputs/task4/optuna/task4_cgan/trials.csv})}
+\end{table}
+
+The ranges are an octave either side of pix2pix's $2\times10^{-4}$ for both
+learning rates, searched separately because their ratio sets the balance between
+the two networks; batch sizes giving 224, 112 or 56 updates per epoch on the 899
+training pairs; base widths giving 10.5, 23.6 or 41.9\,M generator parameters; a
+dropout range that includes pix2pix's 0.5, its generator's only noise source, and
+zero; and a $\lambda_{L_1}$ range centred on the brief's 100.
+
+\begin{figure*}[t]
+\centering
+\resultfig{task4_optuna_optimization_history.png}{0.42\textwidth}{From
+\path{outputs/task4/optuna/task4_cgan/optimization_history.png}.}\hfil
+\resultfig{task4_optuna_param_importances.png}{0.42\textwidth}{From
+\path{outputs/task4/optuna/task4_cgan/param_importances.png}.}
+\caption{Optuna study \texttt{task4\_cgan} (ten trials on Kaggle): optimisation
+history (left) and parameter importances (right).}
+\label{fig:task4optuna}
+\end{figure*}
+
+\subsection{Results}
+
+\todo{final 120-epoch run on Kaggle: best epoch, validation sketch score and epoch
+time (Kaggle log or Weights \& Biases), and whether the mixed-precision losses
+stayed finite throughout}
+
+\begin{table}[t]
+\caption{Task 4 results on the official FS2K test set (1{,}046 pairs), per style:
+$L_1$ (on $[0,1]$), SSIM, PSNR (dB), edge ratio (generated edge energy divided by
+the ground truth's; 1 = as sharp as the artist) and sketch score. Note the
+support: style 3 has only 46 test pairs.}
+\label{tab:task4}
+\centering
+\resulttable{task4_by_style.tex}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Style & $n$ & $L_1$ & SSIM & PSNR & Edge ratio & Score \\
+\midrule
+Style 1 & 619 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Style 2 & 381 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Style 3 & 46 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\bottomrule
+\end{tabular}%
+\missingtable{task4_by_style.tex}{outputs/task4/tables/by_style.tex}}
+\end{table}
+
+\begin{table}[t]
+\caption{Task 4 test metrics per photograph source and style. The
+\texttt{photo3}/Style~1 combination never occurs in the training split
+(Section~\ref{sec:data}).}
+\label{tab:task4source}
+\centering
+\resulttable{task4_by_source_style.tex}{%
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+Source & Style & $n$ & $L_1$ & SSIM & PSNR & Edge ratio \\
+\midrule
+photo3 & Style 1 & 179 & \tbd & \tbd & \tbd & \tbd \\
+\bottomrule
+\end{tabular}%
+\missingtable{task4_by_source_style.tex}{outputs/task4/tables/by_source_style.tex}}
 \end{table}
 
 \textbf{What these metrics can and cannot support.} SSIM~\cite{wang2004image} is
 paired, interpretable and the metric the FS2K benchmark itself reports, alongside
 the sketch-specific SCOOT measure~\cite{fan2019scoot,fan2022facial}; since SCOOT
 is not implemented here, the numbers above are \emph{not} directly comparable
-with published FS2K benchmark results, and no such comparison is claimed.
-LPIPS~\cite{zhang2018unreasonable} is included because PSNR and SSIM are shallow
-functions that miss much of human perceptual judgement, and because, being
-paired, it remains well defined on 46 images. FID~\cite{heusel2017gans} is
-reported on the full test set only and never per style: Chong and
-Forsyth~\cite{chong2020effectively} prove that FID is biased at finite sample
-sizes \emph{and} that the bias depends on the model being evaluated, so one model
-can beat another purely through a smaller bias---an effect that dominates at
-$n = 46$. Parmar et al.~\cite{parmar2022aliased} further show that low-level
-choices, particularly resizing and compression, induce large FID variations, so
-the resize path is stated explicitly and kept identical for real and generated
-images. KID~\cite{binkowski2018demystifying} would be better behaved at small
-$n$, since it assumes no parametric form for the activations and has a simple
-unbiased estimator. More generally, GAN metrics
-disagree~\cite{borji2019pros,lucic2018gans}, so small differences should not be
-over-read.
+with published FS2K benchmark results, and no such comparison is claimed. $L_1$
+and PSNR measure pixel fidelity to the artist's drawing, and the edge ratio
+measures directly the blur that an $L_1$ term induces, which a pixel metric
+rewards rather than penalises. Two perceptual metrics were considered and
+deliberately \emph{not} used. FID~\cite{heusel2017gans} is biased at finite sample
+sizes, and Chong and Forsyth~\cite{chong2020effectively} show that the bias depends
+on the model being evaluated, so one model can beat another purely through a
+smaller bias---an effect that dominates at the $n = 46$ of style~3; Parmar et
+al.~\cite{parmar2022aliased} add that resizing and compression choices alone
+induce large FID variations. KID~\cite{binkowski2018demystifying} would be better
+behaved at small $n$, but like FID it requires additional packages and
+ImageNet-trained weights downloaded at run time, which the project did not add.
+LPIPS~\cite{zhang2018unreasonable} is paired and well defined on 46 images, but its
+perceptual calibration comes from patches of natural photographs, not from line
+drawings, so its judgement of sketch quality is not established. More generally,
+GAN metrics disagree~\cite{borji2019pros,lucic2018gans}, so small differences
+should not be over-read, and visual evidence carries more weight here than in
+Tasks~1--3.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task4/figures/style\_grid.png}. For several test photographs:
-the input photograph, the three generated sketches (styles 1, 2, 3) and the
-ground-truth sketch for the true style.}
+\resultfig[0.24\textheight]{task4_style_swap.png}{0.62\textwidth}{From
+\path{outputs/task4/figures/style_swap.png}: one test photograph per style,
+with the ground truth and the sketch generated in each of the three styles.}
 \caption{The same photograph rendered in all three styles, next to the
 ground-truth sketch. The style condition is the only input that differs across
 the three generated columns.}
 \label{fig:task4grid}
+\end{figure*}
+
+\begin{figure}[t]
+\centering
+\resultfig[0.24\textheight]{task4_test_examples.png}{\columnwidth}{From
+\path{outputs/task4/figures/test_examples.png}: the two test pairs closest to the
+median score of each style.}
+\caption{Typical Task 4 test results (median sketch score per style): photograph,
+ground truth and generated sketch.}
+\label{fig:task4examples}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file:
-\texttt{outputs/task4/figures/training\_curves.png}. Discriminator real and fake
-losses, generator adversarial and reconstruction losses, and validation
-measurements, each logged separately.}
-\caption{Task 4 training curves.}
+\resultfig{task4_training_curves.png}{\columnwidth}{No script writes this figure:
+export from the Weights \& Biases run of the final Task~4 training the panels
+\texttt{train/d\_real}, \texttt{train/d\_fake}, \texttt{train/g\_adv},
+\texttt{train/g\_l1} and the validation metrics, and save them as
+\path{report/figures/task4_training_curves.png}.}
+\caption{Task 4 training curves: discriminator real and fake losses, generator
+adversarial and reconstruction losses, and validation measurements, each logged
+separately as the brief requires.}
 \label{fig:task4curves}
 \end{figure}
 
-\todo{paragraph reporting the style-sensitivity metric (validation $L_1$ under
-the true style against a shifted style) and what it says about how much the
-model actually uses the condition, as opposed to inferring the style from the
-photograph's appearance --- the confound identified in Section~\ref{sec:data}}
+\todo{paragraph reporting the style-sensitivity check (\texttt{style\_sensitivity}
+in \path{outputs/task4/eval/summary.json}: test $L_1$ under the true style
+against the mean under the two wrong styles, and their gap) and what it says
+about how much the model actually uses the condition, as opposed to inferring the
+style from the photograph's appearance---the confound identified in
+Section~\ref{sec:data}; then interpret Tables~\ref{tab:task4}
+and~\ref{tab:task4source}, including the seen/unseen split
+(\texttt{by\_seen\_combination} in the same file)}
 
 \subsection{Failure analysis}
 
-\todo{failure cases: photographs far from the FS2K framing (off-centre or small
-faces), the unseen (source, style) combinations in the test set, the grey-paper
-offset affecting the 179 \texttt{photo3} style-1 pairs, and any style for which
-the condition is weakly obeyed. Include generated examples.}
+\begin{figure}[t]
+\centering
+\resultfig[0.24\textheight]{task4_failure_cases.png}{\columnwidth}{From
+\path{outputs/task4/figures/failure_cases.png}: the six test pairs with the lowest
+sketch score.}
+\caption{Task 4 failure cases (lowest sketch score); automatic notes on each case
+are written to \texttt{outputs/task4/eval/failure\_cases.csv}.}
+\label{fig:task4failures}
+\end{figure}
+
+\todo{failure cases from Figure~\ref{fig:task4failures} and
+\path{outputs/task4/eval/failure_cases.csv}: photographs far from the FS2K framing
+(off-centre or small faces), the unseen (source, style) combinations in the test
+set, the grey-paper offset affecting the 179 \texttt{photo3} style-1 pairs, and
+any style for which the condition is weakly obeyed}
 
 \section{Experimental Setup}
 \label{sec:setup}
 
-All training runs on a single free-tier Google Colab~\cite{colab} instance with
-an NVIDIA T4 GPU~\cite{nvidiat4}, using PyTorch~\cite{paszke2019pytorch} with
-mixed precision~\cite{micikevicius2018mixed}. Because free-tier sessions
+\textbf{Hardware.} All models are trained with PyTorch~\cite{paszke2019pytorch} on
+NVIDIA T4 GPUs~\cite{nvidiat4} with mixed precision~\cite{micikevicius2018mixed}
+(fp16 autocast with gradient scaling, since the T4 has no bf16 support), in two
+environments. Task~1 (search, final training, evaluation and export) and both
+Task~2 searches ran on a free-tier Google Colab~\cite{colab} instance with one
+T4. On the deadline day the free Colab GPU quota was exhausted, so the remaining
+work---Task~2's final models and evaluation, and all of Tasks~3 and~4---was moved
+to a Kaggle notebook with two T4 GPUs. A single runner,
+\texttt{scripts/kaggle\_run.py}, prepares both datasets and drives two pipelines
+in parallel, one per GPU: GPU~0 trains the classifier and the salt-and-pepper and
+blur specialists, waits for the occlusion specialist, evaluates and exports
+Task~2 and then runs all of Task~3, which needs every Task~2 model; GPU~1 trains
+the occlusion specialist and then all of Task~4. Every step writes a completion
+marker, so the runner can simply be restarted after an interruption. Task~2's
+final models are retrained there from the configurations selected on Colab,
+committed as \texttt{configs/task2\_*.yaml}, and only the Kaggle results are
+reported. The deadline also forced shorter Optuna budgets for Tasks~3 and~4
+(Table~\ref{tab:budgets}).
+
+\textbf{Resumable runs.} Because free-tier sessions
 disconnect without warning, every component is built to resume: training writes a
 complete checkpoint every epoch (model, optimiser, scheduler, gradient scaler,
 early-stopping state, history and the Weights \& Biases run id) and
@@ -1596,123 +2140,303 @@ early stopping would spend most of the budget on very short runs whose ranking i
 unreliable for GAN and mixture training, whereas the median rule is model-free
 and matches the fixed-epoch validation schedule. Task~3 adds the task-specific
 routing-collapse criterion of Section~\ref{sec:task3}, which no generic pruner
-can express. Each study's SQLite database is mirrored to Google Drive after every
-finished trial, so a search survives a disconnect and only the remaining trials
-are run.
+can express. Each study's SQLite database lives on local disk and a consistent
+snapshot is copied to persistent storage (Google Drive on Colab, the notebook's
+working directory on Kaggle) after every finished trial, so a search survives a
+disconnect and only the remaining trials are run. Table~\ref{tab:budgets} lists
+what each study actually ran.
 
-Experiment tracking uses Weights \& Biases~\cite{wandb}. Every Optuna trial is its
-own run with its parameters in the configuration and its per-epoch validation
-metrics logged; final runs additionally log per-condition metrics, sample image
-grids at fixed intervals using \emph{fixed} validation indices so that progress is
-comparable across epochs, and the best checkpoint as a model artefact.
+\begin{table}[t]
+\caption{Optuna budgets and final training runs. C/P: completed and pruned
+trials; time: sum of trial durations. The Task~3 and Task~4 budgets were cut on
+Kaggle; the original plan was 20 trials of 1+4 epochs and a 2+20-epoch final run
+for Task~3, and 20 trials of 10 epochs for Task~4.}
+\label{tab:budgets}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}lllcll@{}}
+\toprule
+Study & GPU & Trials $\times$ ep. & C/P & Time & Final run \\
+\midrule
+T1 UDAE & Colab & 33 (of 40) $\times$ 15 & 15/18 & 89.6 min & 60 ep., 20 min \\
+T2 classifier & Colab & 30 $\times$ 12 & 5/25 & 15.6 min & 60 ep., Kaggle \\
+T2 specialists & Colab & 20 $\times$ 6 ($\times 3$) & 12/8 & 61.5 min & $3{\times}40$ ep., Kaggle \\
+T3 soft MoE & Kaggle & 6 $\times$ (1+3) & \tbd & \tbd & 2+10 ep. \\
+T4 cGAN & Kaggle & 10 $\times$ 8 & \tbd & \tbd & 120 ep. \\
+\bottomrule
+\end{tabular}
+\\[2pt]
+\todo{fill the Task 3 and Task 4 rows and the Kaggle final-run times from
+\path{outputs/task3/optuna/task3_moe/summary.json},
+\path{outputs/task4/optuna/task4_cgan/summary.json} and the Kaggle logs}
+\end{table}
 
-\todo{report the actual wall-clock times, the number of completed and pruned
-trials per study, and the Weights \& Biases project URL once the runs are
-finished}
+\textbf{Experiment tracking} uses Weights \& Biases~\cite{wandb}, in the project
+\texttt{genai-a1}
+(\url{https://wandb.ai/mustafafaraz87-fast-nuces/genai-a1}). Every Optuna trial is
+its own run, grouped per study, with its parameters in the configuration and its
+per-epoch validation metrics logged; final runs additionally log per-condition
+metrics, sample image grids at fixed intervals using \emph{fixed} validation
+indices so that progress is comparable across epochs, and the best checkpoint as
+a model artefact---for example, the final Task~1 run \texttt{udae} stores its
+\texttt{best.pt} from epoch 59. The Kaggle runs log to the same project.
+\todo{make the Weights \& Biases project public (or link a W\&B report) before
+submission}
 
 \section{Application Architecture}
 \label{sec:app}
 
+The four tasks are served by one application, \emph{GenAI Studio}, with four
+workspaces named as in the brief: \textbf{Universal Restoration} (Task~1),
+\textbf{Hard-Routed Restoration} (Task~2), \textbf{Soft Mixture-of-Experts
+Restoration} (Task~3) and \textbf{Face-to-Sketch Generator} (Task~4).
+Figure~\ref{fig:architecture} shows its structure.
+
 \subsection{Interface design}
 
-The interface was designed in Google Stitch~\cite{stitch} before implementation,
-as the brief requires. The design defines a four-tab shell---one tab per
-workspace, named exactly as the brief names them---over a two-column layout: a
-narrow input card with an upload dropzone, sample images, corruption and
-severity controls and an action button, and a wide results column with image
-panels, a details card and a download control. Each workspace extends the shell
-with what its task exposes: a routing toggle and classifier probability bars for
-hard routing, four routing weights for the mixture, and a style selector for the
-sketch generator.
+The interface was designed in Google Stitch~\cite{stitch} before any frontend code
+was written, as the brief requires; Fig.~\ref{fig:stitch} reproduces the original
+Stitch screens, and the exported HTML is kept in \texttt{design/stitch/}. The
+design defines a four-tab shell over a 12-column grid: a narrow input card (upload
+dropzone, sample images, \emph{Corruption} and \emph{Severity} segmented controls
+and the action button) and a wide results column with \emph{Original},
+\emph{Model input} and \emph{Restored output} panels, a details card with a
+download control and an error map. Each workspace adds what its task exposes: a
+\emph{Predicted}/\emph{Oracle} routing toggle and classifier probability bars for
+hard routing; four expert weights, a ``main contributor'' and the four branch
+outputs for the mixture; and a webcam button and a \emph{Style 1/2/3} selector
+for the sketch generator. The implementation keeps the design's Tailwind
+configuration (colour roles, radii, spacing and type scale) unchanged, but every
+number in the mock-ups---GPU names, latencies, LPIPS scores---was a Stitch
+placeholder and was replaced by values returned by the API or removed: the
+application shows only real data.
+
+\begin{figure*}[t]
+\centering
+\resultfig{stitch/universal.png}{0.40\textwidth}{Copied from
+\path{design/stitch/universal.png}.}\hspace{0.03\textwidth}%
+\resultfig{stitch/hard-routed.png}{0.40\textwidth}{Copied from
+\path{design/stitch/hard-routed.png}.}\\[4pt]
+\resultfig{stitch/moe.png}{0.40\textwidth}{Copied from
+\path{design/stitch/moe.png}.}\hspace{0.03\textwidth}%
+\resultfig{stitch/sketch.png}{0.40\textwidth}{Copied from
+\path{design/stitch/sketch.png}.}
+\caption{The original Google Stitch designs of the four workspaces, as generated
+in Stitch before implementation (evidence required by the brief): Universal
+Restoration (top left), Hard-Routed Restoration (top right), Soft
+Mixture-of-Experts Restoration (bottom left) and Face-to-Sketch Generator (bottom
+right). The numbers and model names in these mock-ups are Stitch placeholders;
+the implemented application replaces them with values returned by the backend.}
+\label{fig:stitch}
+\end{figure*}
 
 \begin{figure}[t]
 \centering
-\placeholderfig{Figure file: screenshot of the original Google Stitch design
-(evidence of the Stitch design, required by the brief).}
-\caption{The original Google Stitch design of the application interface.}
-\label{fig:stitch}
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt,
+    text width=0.80\columnwidth},
+  arr/.style={-{Stealth[length=4pt]}, semithick},
+  node distance=4.5mm]
+\node[box] (browser) {\textbf{Browser}: React + TypeScript + Tailwind CSS\\
+four workspaces, webcam capture, error map, downloads};
+\node[box, below=of browser] (nginx) {\textbf{frontend container} (nginx, port 5173)\\
+built static files; \texttt{/api/*} proxied to the backend (same origin)};
+\node[box, below=of nginx] (api) {\textbf{backend container} (FastAPI, port 8000)\\
+upload validation $\cdot$ preprocessing and corruption (\texttt{src/data}, as in
+training) $\cdot$ ONNX Runtime sessions (CPU) $\cdot$ PSNR/SSIM and timing};
+\node[box, below=of api] (models) {\textbf{\texttt{./models}} mounted read-only at
+\texttt{/models}: \texttt{udae}, \texttt{classifier},
+\texttt{specialist\_\{salt,blur,occlusion\}}, \texttt{moe}, \texttt{generator}
+(\texttt{.onnx} + JSON model cards)};
+\node[box, below=of models] (train) {\textbf{Training} (Colab / Kaggle T4): PyTorch,
+Optuna, Weights \& Biases $\rightarrow$ ONNX export with parity check};
+\draw[arr] (browser) -- node[right, font=\tiny] {HTTP} (nginx);
+\draw[arr] (nginx) -- node[right, font=\tiny] {\texttt{/api}} (api);
+\draw[arr] (models) -- node[right, font=\tiny] {loaded at start-up} (api);
+\draw[arr] (train) -- node[right, font=\tiny] {exported files} (models);
+\node[draw, dashed, rounded corners=3pt, inner sep=2.5pt, fit=(nginx) (api) (models),
+  label={[font=\tiny, anchor=south east]north east:\texttt{docker compose up --build}}] {};
+\end{tikzpicture}
+\caption{Application architecture. One command starts both containers; the
+backend reuses the training code's corruption and preprocessing functions, so the
+application degrades and prepares images exactly as training did.}
+\label{fig:architecture}
 \end{figure}
 
 \subsection{Backend}
 
 The backend is a FastAPI application~\cite{fastapi} that runs every model through
-ONNX Runtime~\cite{onnxruntime} on CPU. It exposes a health endpoint reporting
-status, uptime, runtime versions and the model card of every loaded model; an
-options endpoint returning the corruption types, fixed levels, permitted custom
+ONNX Runtime~\cite{onnxruntime} on the CPU execution provider, so it needs no GPU
+and does not import PyTorch at all (a test asserts it). Its endpoints are listed in
+Table~\ref{tab:endpoints}. The health endpoint reports status, uptime, runtime
+versions, every model with its model card, and which workspaces are ready; the
+options endpoint returns the corruption types, fixed levels, permitted custom
 parameter ranges and style names, so the interface builds its controls from the
-server rather than duplicating constants; a samples endpoint; a corruption
-endpoint that applies a runtime corruption for preview; and one endpoint per
-task. Crucially, the backend imports \emph{the same} corruption and preprocessing
-code as training (\texttt{src/data/}), so an image passed through the application
-is degraded and prepared exactly as it would have been during training.
+server rather than duplicating constants. Crucially, the backend imports
+\emph{the same} corruption and preprocessing code as training
+(\texttt{src/data/}), so an image passed through the application is degraded and
+prepared exactly as it would have been during training, and the corrupted input
+is rounded to 8 bits so that the image returned as ``Model input'' is exactly
+what the model saw.
 
-Uploads are validated by decoding rather than by declared content type, with
-limits on file size and pixel count to reject decompression bombs; parameters
-outside the training ranges are refused with an explanatory message rather than
-silently clamped, so the evaluator cannot unknowingly test the models outside the
-distribution they were trained on. Requests may supply either an uploaded file or
-a bundled sample, and either a fixed severity level or custom parameters, never
-both.
+\begin{table}[t]
+\caption{Backend API (all paths under \texttt{/api}; every request is multipart
+form data and every image in a response a PNG data URL).}
+\label{tab:endpoints}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{4.55cm}@{}}
+\toprule
+Endpoint & Purpose \\
+\midrule
+\texttt{GET /health} & status, uptime, runtime versions, models and model cards, ready workspaces \\
+\texttt{GET /options} & corruption types, levels, training ranges, styles, upload limits \\
+\texttt{GET /samples} & bundled pet photographs from the official test split \\
+\texttt{POST /corrupt} & runtime corruption preview (type, level or custom parameters, seed) \\
+\texttt{POST /restore/universal} & Task 1, \texttt{udae.onnx} \\
+\texttt{POST /restore/hard} & Task 2, classifier + one specialist or identity; predicted or oracle routing \\
+\texttt{POST /restore/moe} & Task 3, \texttt{moe.onnx}: output, four weights, four branch outputs \\
+\texttt{POST /sketch} & Task 4, \texttt{generator.onnx}, style 1, 2 or 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Uploads are validated by decoding rather than by declared content type: JPEG,
+PNG, WEBP and BMP are accepted up to 10~MB and 50 megapixels, which rejects
+decompression bombs; EXIF rotation is applied and greyscale, palette and
+transparent images are converted to RGB. Parameters outside the training ranges
+are refused with an explanatory message rather than silently clamped, so the
+evaluator cannot unknowingly test the models outside the distribution they were
+trained on. Requests may supply either an uploaded file or a bundled sample, and
+either a fixed severity level or custom parameters, never both. When the server
+applies the corruption itself, the response also contains PSNR and SSIM of the
+model input and of the output against the clean original, with SSIM implemented
+in NumPy to the training definition (agreement with the PyTorch version within
+$10^{-5}$ is tested), and every response reports the inference and total server
+time---for hard routing split into classifier and expert time. A missing model
+file disables only the requests that need it, with a message naming the file.
 
 \subsection{Frontend and deployment}
 
-The frontend is a React~\cite{react} application styled with Tailwind
-CSS~\cite{tailwind}, implementing the four workspaces of the Stitch design
-against the backend API. Frontend and backend each run in their own container and
-start together with a single Docker Compose command~\cite{dockercompose}.
+The frontend is a React~\cite{react} and TypeScript application styled with
+Tailwind CSS~\cite{tailwind} and built with Vite. It implements the four Stitch
+workspaces against the API, each at its own URL and kept mounted when hidden, so
+inputs and results survive switching tabs. Each restoration workspace accepts an
+upload or a sample and offers runtime corruption with a fixed level or custom
+parameters and a reproducible seed, a corruption preview, PSNR and SSIM under the
+image panels, an absolute error map computed in the browser and a download of the
+result; the hard-routing workspace adds the classifier probabilities, the
+predicted and true class, the expert used and the classifier/expert timing, and
+the mixture workspace the four expert weights and branch outputs. The
+Face-to-Sketch Generator accepts an upload or a webcam capture and a style, shows
+photograph and sketch side by side and offers the sketch for download. Fonts and icons
+are self-hosted from npm packages and Tailwind is compiled at build time, so the
+application needs no external CDN.
 
-\begin{figure}[t]
-\centering
-\placeholderfig{Figure file: architecture diagram --- browser (React + Tailwind)
-$\rightarrow$ FastAPI backend $\rightarrow$ ONNX Runtime session registry
-$\rightarrow$ the five ONNX models, with the shared \texttt{src/data} corruption
-and preprocessing code highlighted as common to training and serving.}
-\caption{Application architecture.}
-\label{fig:architecture}
-\end{figure}
+Frontend and backend each run in their own container and start together with one
+documented command, \texttt{docker compose up --build}~\cite{dockercompose}. The
+application is then served at \url{http://localhost:5173}; the frontend container
+(nginx) serves the built files and forwards \texttt{/api} to the backend
+container, so the browser talks to a single origin and no CORS configuration is
+needed. The backend publishes port 8000 with interactive API documentation, runs
+as a non-root user with a health check, and the frontend starts once that check
+passes. The trained ONNX models are not baked into the image: the
+\texttt{./models} folder is mounted read-only, so updated models need only a
+restart, and without them the backend still starts, reports itself as degraded
+and the interface names the missing files.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\placeholderfig{Figure files: screenshots of the four workspaces --- Universal
-Restoration, Hard-Routed Restoration, Soft Mixture-of-Experts Restoration and
-Face-to-Sketch Generator --- each showing an input, the result and the task's
-own information panel.}
-\caption{The four application workspaces.}
+\resultfig[0.18\textheight]{app_universal.png}{0.40\textwidth}{Screenshot of the
+running application with the trained models: Universal Restoration.}\hspace{0.03\textwidth}%
+\resultfig[0.18\textheight]{app_hard.png}{0.40\textwidth}{Screenshot:
+Hard-Routed Restoration, with classifier probabilities.}\\[4pt]
+\resultfig[0.18\textheight]{app_moe.png}{0.40\textwidth}{Screenshot: Soft
+Mixture-of-Experts Restoration, with the expert weights.}\hspace{0.03\textwidth}%
+\resultfig[0.18\textheight]{app_sketch.png}{0.40\textwidth}{Screenshot:
+Face-to-Sketch Generator, photograph and sketch side by side.}
+\caption{The four workspaces of the running application with the trained models.}
 \label{fig:screenshots}
-\end{figure}
+\end{figure*}
 
 \subsection{ONNX export and parity}
 
-Five models are exported to ONNX~\cite{onnx,pytorchonnx} at opset 17 in float32
-with a dynamic batch axis: the universal autoencoder, the classifier, the three
+Seven ONNX~\cite{onnx,pytorchonnx} files are exported, at opset 17 in float32 with
+a dynamic batch axis: the universal autoencoder, the classifier, the three
 specialists, the complete mixture pipeline as a single graph (gate, temperature
 constant, softmax, identity branch, three experts and the weighted sum, emitting
 the output, the four weights and all four branch outputs) and the sketch
-generator. Every export is verified against its PyTorch original in evaluation
-mode on at least 32 \emph{real} test inputs spanning all conditions and
+generator; the discriminator is a training component only. The TorchScript-based
+exporter is used explicitly, because the newer default exporter of recent PyTorch
+versions targets opset 18 and can emit invalid \texttt{Split} nodes. Every export is verified against its PyTorch original in
+evaluation mode on at least 32 \emph{real} test inputs spanning all conditions and
 severities---not random noise, so that the gate sees realistic logits---and the
-maximum absolute difference must stay below $10^{-4}$ or the file is rejected and
-the script fails. Each model is accompanied by a JSON model card recording its
-configuration, input and output specification, preprocessing, test metrics,
-hyperparameters, the measured parity, the Weights \& Biases run URL, the git
-commit and the export time.
-\todo{report the measured maximum absolute difference for each of the five
-exported models}
+maximum absolute difference must stay below $10^{-4}$, or the file is rejected
+and the script fails. For the universal autoencoder the measured maximum
+difference is $8.64\times10^{-7}$ on 64 test inputs and $3.58\times10^{-7}$ on a
+single image, more than two orders of magnitude inside the tolerance. Each model
+is accompanied by a JSON model card recording its configuration, input and output
+specification, preprocessing, test metrics, hyperparameters, the measured
+parity, the Weights \& Biases run URL, the git commit and the export time; the
+backend shows these cards in the application's system-information panel.
+\todo{measured parity of the classifier, the three specialists, the mixture and
+the generator, from the model cards of the Kaggle run}
 
 \section{Limitations}
+\label{sec:limitations}
 
 \emph{Severity coverage.} All three test ``high'' levels sit at the upper edge of
 the training ranges, and no training blur ever reaches the strength of the
 $(7, 2.5)$ test configuration (Section~\ref{sec:data}). Results at the high
 level therefore measure extrapolation to the boundary of the training
-distribution as much as restoration ability.
+distribution as much as restoration ability; for Task~1 this shows as a 0.8~dB
+drop from medium to high blur and a steady decline for occlusion, while
+salt-and-pepper is unaffected.
 
-\emph{Search fidelity.} Hyperparameters were selected from short trials---15
-epochs for Task~1, 12 for the Task~2 classifier, 6 per specialist, 5 for
-Task~3---and applied to runs three to four times longer. Short budgets favour
-configurations that learn quickly; the best learning rate for a longer schedule
-is typically somewhat lower. This is the usual trade-off of a budgeted search on
-a single free-tier GPU, not a claim that the selected configuration is optimal.
+\emph{Search fidelity and short-trial bias.} Hyperparameters were selected from
+short trials---15 epochs for Task~1, 12 for the Task~2 classifier, 6 per
+specialist, 4 for Task~3 and 8 for Task~4---and applied to runs three to fifteen
+times longer. Short budgets favour configurations that learn quickly, and the
+evidence is visible: both restoration searches chose the smallest batch size,
+which gives the most optimiser steps per epoch, and Task~1's selected
+configuration gained 0.076 in validation score between its 15-epoch trial and
+the 60-epoch run. The selected configurations are good regions of the search
+space found under a budget, not proven optima; Task~1's best trial was also its
+last, so more trials could still have helped.
+
+\emph{Reduced budgets for Tasks 3 and 4.} The free Colab GPU quota ran out on the
+deadline day, and Tasks~3 and~4 were trained on Kaggle with budgets cut to fit:
+six Optuna trials of one warm-up and three joint epochs and a final run of
+2+10 epochs for Task~3 (planned: 20 trials, 2+20 epochs), and ten trials of eight
+epochs for Task~4 (planned: 20 of ten). With ten random start-up trials
+configured for TPE, neither study reached the model-based phase of the sampler,
+so both are small random searches around the brief's reference configuration.
+Their hyperparameters are therefore less well optimised than those of Tasks~1
+and~2, and Task~3's shorter joint fine-tuning may understate what soft routing
+can achieve.
+
+\emph{The Task~1 versus Task~2 bottleneck confound.} The specialists' search
+offered $16\times16$ latents and selected one of 8{,}192 values, twice the 4{,}096
+of the universal model, whose range was capped to keep a meaningful bottleneck.
+Part of any advantage of hard routing over the universal model may therefore come
+from the larger latent rather than from specialisation; a controlled comparison
+would retrain the universal model with the same latent shape.
+
+\IfFileExists{tables/task1_skip_ablation.tex}{}{\emph{Missing ablation.} The
+limited-skip ablation of Task~1 is implemented but was not trained within the GPU
+budget, so the leak-versus-detail trade-off of skip connections is argued and
+bounded by the two diagnostics rather than measured.}
+
+\emph{Mixed precision for the GAN.} Task~4 trains with fp16 autocast and separate
+gradient scalers for the generator and the discriminator. Its numerical
+stability could not be verified before the Kaggle run, since the development
+machine had no GPU; a non-finite loss aborts the run (or prunes the trial) rather
+than producing silent NaNs, and full precision remains available as a fallback.
+\todo{confirm from the Kaggle log that every Task~4 trial and the final run kept
+finite losses, or state which trials were pruned for non-finite losses}
 
 \emph{Scale.} With 2{,}944 training images at $128 \times 128$ and models of a
 few million parameters, none of these systems is comparable with published
@@ -1732,17 +2456,25 @@ the wrong branch. The routing matrix and the cross-entropy term cover that case,
 but the regulariser alone does not.
 
 \emph{FS2K confounds and sample sizes.} Style is confounded with photograph
-source in the official FS2K training split, so part of what looks like style
-control may be source recognition; and the test set contains only 46 style-3
-pairs, which makes distributional metrics unusable for that style and widens the
-error bars on every per-style number (Section~\ref{sec:data}).
+source in the official FS2K training split---styles 1 and 2 come only from
+\texttt{photo1}, style~3 only from \texttt{photo2} and \texttt{photo3}---so part
+of what looks like style control may be source recognition; the test set
+contains only 46 style-3 pairs, which makes distributional metrics unusable for
+that style and widens the error bars on every per-style number; and the 179
+\texttt{photo3} style-1 test pairs carry the grey-paper background offset
+(Section~\ref{sec:data}).
 
 \emph{Metrics.} PSNR correlates with subjective quality only within a fixed
-content set~\cite{huynh2008scope}, SSIM and PSNR are shallow
-functions~\cite{zhang2018unreasonable}, and FID is biased in a model-dependent
-way at small sample sizes~\cite{chong2020effectively}. Conclusions are therefore
-drawn from several metrics together with visual evidence, never from a single
-number.
+content set~\cite{huynh2008scope}, and SSIM and PSNR are shallow
+functions~\cite{zhang2018unreasonable}. Task~4 reports no FID and no LPIPS: FID is
+biased in a model-dependent way at small sample sizes~\cite{chong2020effectively}
+and would be meaningless on the 46 style-3 pairs, LPIPS is calibrated on natural
+photographs rather than line drawings, and both need extra packages and
+downloaded ImageNet weights that the project did not add. Sketch quality is
+therefore judged by $L_1$, PSNR, SSIM, the edge ratio and visual evidence, which
+measure fidelity to one artist's drawing rather than perceptual quality.
+Conclusions are drawn from several metrics together with visual evidence, never
+from a single number.
 
 \emph{Deployment.} ONNX inference runs on CPU in the application container, so
 reported inference times reflect the evaluation machine and are not comparable
@@ -1763,33 +2495,120 @@ and which were not.}
 
 \appendix[Use of AI assistance]
 
-AI assistants were used during this work, as the brief permits. Every generated
-artefact was reviewed, tested and corrected by the author, who remains
-responsible for the correctness of the submission. Table~\ref{tab:aiuse} lists
-each tool, what it was used for, and how its output was verified.
+AI tools were used extensively during this work, as the brief permits, and
+Table~\ref{tab:aiuse} lists them. The main one was Claude Code (Anthropic, with
+Claude Opus models), used as a coordinating coding assistant that split the work
+into parallel sub-agents, each with a narrow assignment and its own tests: one
+for research and citation verification, one for the data pipeline and the shared
+training utilities, one for each task's training, evaluation and export code, and
+one each for the FastAPI backend, the React frontend, the Docker setup and the
+drafting of this report. The interface was designed with Google Stitch.
 
-\begin{table}[h]
-\caption{Use of AI assistance.}
+Nothing generated was accepted on trust. Every component ships with unit and
+smoke tests---111 Python tests for the data pipeline, models and the four tasks,
+97 backend tests and 54 frontend tests---and the coordinating session re-ran every
+sub-agent's tests independently before anything was committed. Every ONNX export
+must pass its parity check. Every one of the 114 references was checked against
+Crossref, arXiv or the publisher's or proceedings page, with the verifying URL
+recorded next to its BibTeX entry, and quoted claims were spot-checked
+independently. Verification found and corrected real errors, five of which
+illustrate the process:
+
+\begin{enumerate}
+\item \emph{Blur severity mislabelled.} Blur severity was first assigned from
+$\sigma$ alone. Measuring the strength of the kernel actually applied
+(Eq.~\ref{eq:blurstrength}) showed that a wide Gaussian truncated to three taps is
+milder than the medium test level although its $\sigma$ is larger; relabelling by
+measured strength corrected 86 of the 184 validation blur labels.
+\item \emph{SSIM convention.} A cross-check against \texttt{torchmetrics} found a
+small disagreement (about $3\times10^{-5}$). The cause is a convention, not a bug:
+\texttt{torchmetrics} pads the image and averages over all windows, whereas the
+implementation here follows Wang et al.'s reference and averages over the valid
+region only. The difference is documented, and the test now asserts agreement
+with \texttt{torchmetrics}' SSIM map cropped to the valid region.
+\item \emph{SQLite connection leak on Windows.} In the code that snapshots each
+Optuna study to persistent storage, a \texttt{sqlite3} connection used as a
+context manager commits but is not closed, which on Windows kept the snapshot file
+locked; it is now closed explicitly.
+\item \emph{A quick check that contaminated real checkpoints.} The first Task~2
+classifier evaluation reported test accuracy 0.300, macro-recall exactly 0.250 and
+validation macro-F1 0.1000---one class predicted for every input. Checking these
+numbers against what a trained model must produce exposed the cause: a
+\texttt{--smoke} run had saved a finished tiny model into the real checkpoint
+folder, so the real run, started with \texttt{--resume}, found ``nothing to do'' and
+evaluation silently used the tiny model. Real runs now ignore smoke checkpoints,
+evaluation and export refuse them, and a regression test covers the case. This is
+the clearest example of generated code that passed its own tests yet failed in
+the real workflow.
+\item \emph{Zhao et al.'s $\alpha$.} Their recommended $\alpha = 0.84$ looks like
+support for the brief's $\alpha = 0.8$, but checking the paper showed that it
+weights the MS-SSIM term, not $L_1$, so it corresponds to $\alpha \approx 0.16$
+here. The search range was set to contain both values, and the selected 0.285 is
+interpreted with the correct parameterisation (Section~\ref{sec:task1}).
+\end{enumerate}
+
+The author reviewed all submitted code, text and figures, ran and checked the
+experiments, and is responsible for the correctness of the complete submission.
+
+\begin{table*}[t]
+\caption{Use of AI assistance: tools, what they were used for, and how their
+output was tested or corrected.}
 \label{tab:aiuse}
 \centering
-\begin{tabular}{@{}p{1.9cm}p{2.6cm}p{2.6cm}@{}}
+\footnotesize
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.7cm}%
+>{\raggedright\arraybackslash}p{5.6cm}>{\raggedright\arraybackslash}p{8.6cm}@{}}
 \toprule
-Tool & Used for & How it was verified \\
+Tool & Used for & How the output was tested or corrected \\
 \midrule
-\todo{tool, version} & \todo{e.g.\ drafting training and evaluation scripts} & \todo{e.g.\ unit tests; smoke runs; line-by-line review} \\
-\todo{tool} & \todo{e.g.\ literature search and reference collection} & \todo{every citation checked against the publisher, arXiv or proceedings page; unverifiable claims removed} \\
-\todo{tool} & \todo{e.g.\ interface design} & \todo{design reviewed and reimplemented by hand in React} \\
-\todo{tool} & \todo{e.g.\ drafting report sections} & \todo{every number recomputed from the committed manifests and result files} \\
-\todo{tool} & \todo{e.g.\ debugging} & \todo{fixes reproduced locally and covered by regression tests} \\
+Claude Code (Anthropic), coordinating session & Planning, splitting the work
+into parallel sub-agents, integration, debugging, commits & Each sub-agent's tests
+re-run independently before every commit; the student reviewed diffs, ran the
+training on Colab and Kaggle and checked results against expectations
+(correction 4) \\
+\addlinespace[2pt]
+Claude Code sub-agent: research & Literature search, comparison of design
+alternatives, collection of the 114 references & Every citation checked against
+Crossref, arXiv or the proceedings page (URL kept in \texttt{references.bib});
+quotes spot-checked independently; parameterisation errors corrected (5) \\
+\addlinespace[2pt]
+Claude Code sub-agents: data and shared code & Oxford-IIIT Pet split, runtime
+corruptions, manifests, balanced sampler, FS2K preparation; losses, metrics,
+checkpoints, Optuna and W\&B helpers, ONNX export & 44 tests (corruptions,
+FS2K, models, shared utilities), e.g.\ blur equal to \texttt{torchvision} within
+$10^{-5}$, exact resume after interruption; corrections 1--3 \\
+\addlinespace[2pt]
+Claude Code sub-agents: Tasks 1--4 & Models, training, Optuna studies,
+evaluation, figures and ONNX export for each task & 67 CPU smoke and unit tests
+(14, 14, 17 and 22 per task), ONNX parity at most $10^{-4}$ on real inputs,
+evaluation numbers sanity-checked (correction 4) \\
+\addlinespace[2pt]
+Claude Code sub-agents: backend, frontend, Docker & FastAPI service, React +
+Tailwind interface implementing the Stitch design, Dockerfiles and Compose file
+& 97 backend tests (validation, errors, endpoints, metrics, missing models), 54
+Vitest tests, end-to-end run under Docker Compose with placeholder models, and the
+exported Task~1 model checked through the real backend \\
+\addlinespace[2pt]
+Claude Code sub-agent: report & Drafting this report from the design notes and
+the experiment log & Every number traced to the experiment log or to the output
+files of the scripts; text reviewed by the student \\
+\addlinespace[2pt]
+Google Stitch & Visual design of the four workspaces
+(Fig.~\ref{fig:stitch}) & Design reviewed; its Tailwind configuration reused;
+placeholder numbers replaced by data from the API \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \section*{Availability}
 
 The complete implementation---data preparation, training, Optuna search,
 evaluation and ONNX export scripts, backend, frontend, Dockerfiles and Docker
-Compose configuration---is available at \url{\repourl}. The demonstration video
+Compose configuration---is available at \url{\repourl}; the application starts
+with \texttt{docker compose up --build} once the ONNX models are placed in
+\texttt{models/} \todo{download link of the trained ONNX models}. Experiment
+tracking records are in the Weights \& Biases project
+\url{https://wandb.ai/mustafafaraz87-fast-nuces/genai-a1}. The demonstration video
 is at \todo{YouTube link}.
 
 \bibliographystyle{IEEEtran}
