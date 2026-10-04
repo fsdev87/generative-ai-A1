@@ -205,13 +205,45 @@ clean photos (to be confirmed by the blur-strength analysis in the classifier ev
 4. After only 6 epochs the specialists' validation scores (blur 0.73) are already close to the
    fully trained universal model's (blur 0.724 after 60 epochs).
 
+### Move to Kaggle (2026-10-04)
+
+Colab's free GPU quota ran out before the specialists' final runs completed, on the deadline day.
+The remaining work moved to Kaggle (2× T4) with `scripts/kaggle_run.py`: Task 2's final classifier
+and specialists were retrained there from scratch with the configurations the Colab searches
+selected (`configs/task2_*.yaml`); Kaggle has no access to the Colab files, so no partial Colab
+checkpoint could be reused. The deployed Task 2 models and their test numbers therefore come from
+the Kaggle run (the Colab classifier numbers above are superseded). Tasks 3 and 4 used reduced
+Optuna budgets because of the deadline (Task 3: 6 trials of 1 warm-up + 3 joint epochs, final
+2 + 10; Task 4: 10 trials of 8 epochs, final 120 epochs).
+
+On Kaggle the Task 2 classifier stopped early after 2.4 min (≈ 3.5 s/epoch); the specialists took
+≈ 12–13 s/epoch. All 17 pipeline steps finished at 11:12 UTC (16:12 local), ≈ 1 h after starting.
+
 ## Task 3 — Soft mixture of experts
 
-*Not started.*
+### Kaggle run (2026-10-04)
+
+- Optuna study `task3_moe`: 6 trials (1 warm-up + 3 joint epochs each), 15.9 min.
+- Final run: 2 warm-up + 10 joint epochs, 9.3 min (≈ 24 s per warm-up epoch, ≈ 47 s per joint
+  epoch on a T4); best at epoch 10, **validation score 0.8260** (0.8251 after warm-up).
+  Selected temperature **tau = 2.678** (search range 0.3–3.0).
+- Routing during training: argmax routing accuracy 0.995–0.996 on validation; mean branch usage
+  0.25 / 0.25 / 0.25 / 0.25 (identity, salt, blur, occlusion) — no collapse.
+- Test evaluation 6.1 min over 36,690 entries; `moe.onnx` 49.2 MB.
+
+**Interpretation (to confirm with the test outputs):** the search selected a temperature near the
+soft end of the range, so the gate blends experts even though its top choice is almost always the
+right one; usage shows no collapse. Per-type numbers, routing heatmap and the mixed-corruption
+experiment: `outputs/task3` (pending download).
 
 ## Task 4 — Face-to-sketch cGAN
 
-*Not started.*
+### Kaggle run (2026-10-04, GPU 1, finished before Task 3)
+
+- Optuna study `task4_cgan`: 10 trials × 8 epochs; final run 120 epochs (details pending from
+  `outputs/task4`).
+- `generator.onnx` parity with PyTorch: max |diff| **2.86e-6** on 64 test photos (single image
+  1.36e-6).
 
 ---
 
