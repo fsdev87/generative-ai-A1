@@ -46,3 +46,6 @@ report/b3.log
 models/*
 !models/README.md
 *.onnx.data
+
+# Release asset built locally (uploaded to GitHub Releases, never committed)
+models.zip
