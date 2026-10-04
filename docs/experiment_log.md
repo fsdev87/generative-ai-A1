@@ -57,7 +57,14 @@ ablation: no skip (`udae`), one limited skip at 16×16 (`udae_skip16`) and at 32
 The first run's numbers were removed from this log and the report; results below come from the
 retrain only.
 
-*Results: pending (Kaggle retrain in progress).*
+**Results (second Kaggle run).** Best epochs 56 / 59 / 59; validation scores udae 0.6946,
+udae_skip16 0.7586, **udae_skip32 0.8187 (deployed, selected on validation)**. Test, corrupted
+entries: 23.48/0.779, 25.47/0.841, **27.93/0.879**; clean 24.65/0.822, 27.67/0.901, 32.21/0.956;
+impulse survival 0.0024 / 0.0014 / 0.0009; clean detail ratio 0.48 / 0.66 / 0.81.
+skip32 vs oracle classical (27.53/0.861): better on salt (31.49 vs 29.23 dB), close on occlusion
+(23.15 vs 23.34). Blur low output 32.06 dB vs input 32.34 dB (small residual cost of universality).
+Interpretation: limited deep skips restore detail without leaking the corruption (impulse survival
+falls); the 8x8 latent is still the only path for context. ONNX parity 7.2e-7.
 
 ## Task 2 — Hard routing
 
@@ -81,7 +88,15 @@ retrains the classifier (same configuration) and the three specialists with one 
 32×32 (`configs/task2_specialists_skip.yaml`). Hyperparameters come from the Colab searches,
 which were run without skips (limitation). The first run's numbers were removed.
 
-*Results: pending (Kaggle retrain in progress).*
+**Results (second Kaggle run).** Classifier best epoch 20 (val macro-F1 0.9946). Test: accuracy
+0.998, macro-F1 0.997, 74 errors (clean->blur 26, clean->occlusion 15, low blur->clean 5, low
+occlusion->clean 28). Soft clean photos cause false "blur" (2.5 % in the softest sharpness quartile,
+0 % in the two sharpest); dark content causes occlusion confusions (5.9 % of clean photos with >= 30 %
+near-black pixels; rectangles on >= 60 % black areas detected only 87 %). Specialists (one 32x32 skip)
+best epochs 39/39/35. Oracle routing: salt 33.07/0.958, blur 30.35/0.909, occlusion 23.95/0.831,
+corrupted 29.12/0.899; predicted routing identical to -0.002 dB, 3,628/3,669 clean exact.
+Misrouting: low occlusion->identity -3.05 dB (23 harmful); low blur->identity +1.47 dB (4 of 5
+beneficial). Parity: classifier 1.2e-7, specialists 1.6e-6 / 2.1e-6 / 9.4e-6.
 
 ### Incident: quick check contaminated the real checkpoints (found and fixed 2026-10-03)
 
@@ -148,7 +163,18 @@ epochs), final 2 warm-up + 10 joint epochs. Lesson kept from the first run: a hi
 temperature did not make routing soft — with the cross-entropy term on the raw gate logits, the
 logits grow and routing stays near one-hot, so check the routing entropy rather than tau.
 
-*Results: pending (Kaggle retrain in progress).*
+**Results (second Kaggle run).** Study: 6 trials (5 complete, 1 pruned) in 19.3 min, scores
+0.8661-0.8671, best trial 1 (tau 2.68, lambda_ce 0.291, lambda_b 0.0158, alpha 0.570, lr 3.57e-5);
+final best epoch 8, val score 0.8673. Test corrupted 29.45/0.902 (salt 33.62, blur 30.72, occlusion
+24.02 dB); clean 60.77 dB. **Routing is sharp, not soft** (the earlier provisional reading was wrong):
+top-1 0.998, mean entropy normalised by log 4 = 0.074, diagonal 0.936/0.996/0.947/0.989, usage
+0.250/0.251/0.247/0.252, max off-class weight 0.022, no collapse. Likely reason: CE on the raw logits
+keeps them large, so tau = 2.68 still gives near one-hot weights (tau and logit scale trade off; the
+search score barely depended on tau). Softest routing: clean (entropy 0.170) and blur (0.148).
+Cross-task (paired, corrupted entries): MoE beats deployed Task 1 on 90.7 % (+1.52 dB), Task 2
+predicted on 83.3 % (+0.33 dB; occlusion only 56.3 %, +0.08 dB). Mixed corruptions (beyond the
+brief): gate picks one expert (weight >= 0.998; salt > occlusion > blur); soft = argmax 20.80 dB,
+Task 2 hard 20.69 dB, input 13.37 dB. Parity 1.1e-5.
 
 ## Task 4 — Face-to-sketch cGAN
 
@@ -159,7 +185,14 @@ discriminator learning rate 4.5× below the generator's. Task 4 was rerun with a
 (18 trials × 12 epochs) whose discriminator learning-rate range starts at 1.5e-4, and a 200-epoch
 final run. The first run's numbers were removed; results below come from the rerun only.
 
-*Results: pending (Kaggle retrain in progress).*
+**Results (second Kaggle run).** Study: 18 trials (10 complete, 8 pruned), 31.0 min; best trial 9
+(score 0.6710 vs 0.6597 for trial 0): lr_g 4.04e-4, lr_d 2.03e-4, batch 8, base 48, dropout 0.465,
+style_dim 32, lambda_l1 133. Final 200 epochs, best epoch 97 (val score 0.6885), losses finite.
+Test (1,046): L1 0.110, SSIM 0.457, PSNR 15.33, edge ratio 0.56; per style L1 0.085 / 0.154 / 0.087,
+SSIM 0.495 / 0.390 / 0.503, edge 0.56 / 0.53 / 0.70. Style gap: L1 0.110 true vs 0.152 wrong (+38 %).
+Unseen (source, style) 180 pairs L1 0.110 = seen 0.110 (SSIM 0.467 vs 0.455); photo3/Style 1 L1
+0.110 vs photo1/Style 1 0.075 (grey-paper offset). Failures: long dark hair, "strokes too soft".
+Parity 2.5e-6.
 
 ## Still needed for the report
 

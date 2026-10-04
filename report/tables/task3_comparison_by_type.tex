@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Test-set comparison. PSNR* excludes outputs identical to the target (identity bypass, PSNR capped at 100 dB); the clean row of hard routing is then often empty.}
+\label{tab:comparison_by_type}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Input & Universal AE (T1) PSNR* & SSIM & Hard routing, oracle (T2) PSNR* & SSIM & Hard routing, predicted (T2) PSNR* & SSIM & Soft MoE (T3) PSNR* & SSIM \\
+\midrule
+clean & 24.65 & 0.8223 & -- & 1.0000 & 29.91 & 0.9992 & 60.77 & 0.9992 \\
+salt & 24.66 & 0.8182 & 33.07 & 0.9580 & 33.07 & 0.9580 & 33.62 & 0.9606 \\
+blur & 24.56 & 0.7958 & 30.35 & 0.9088 & 30.35 & 0.9088 & 30.72 & 0.9122 \\
+occlusion & 21.22 & 0.7231 & 23.95 & 0.8307 & 23.94 & 0.8306 & 24.02 & 0.8336 \\
+corrupted & 23.48 & 0.7790 & 29.12 & 0.8992 & 29.12 & 0.8992 & 29.45 & 0.9021 \\
+\bottomrule
+\end{tabular}
+\end{table}

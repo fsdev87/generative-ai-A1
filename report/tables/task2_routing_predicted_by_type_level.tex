@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Hard routing (predicted), test set. PSNR*: mean over outputs that are not exact copies of the target; Exact: identity-bypass outputs equal to the clean target (PSNR capped at 100 dB, SSIM 1).}
+\label{tab:t2_routing_predicted_by_type_level}
+\begin{tabular}{lrrrrr}
+\toprule
+Type & Level & n & PSNR* & SSIM & Exact \\
+\midrule
+clean & none & 3669 & 29.91 & 0.9992 & 3628 \\
+salt & low & 3669 & 33.53 & 0.9628 & 0 \\
+salt & medium & 3669 & 33.19 & 0.9593 & 0 \\
+salt & high & 3669 & 32.50 & 0.9520 & 0 \\
+blur & low & 3669 & 31.68 & 0.9419 & 0 \\
+blur & medium & 3669 & 30.59 & 0.9148 & 0 \\
+blur & high & 3669 & 28.78 & 0.8698 & 0 \\
+occlusion & low & 3669 & 26.74 & 0.9000 & 0 \\
+occlusion & medium & 3669 & 23.87 & 0.8415 & 0 \\
+occlusion & high & 3669 & 21.22 & 0.7505 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Test entries misrouted by the classifier. $\Delta$ = predicted minus oracle routing; harmful/beneficial: at least 1 dB worse/better.}
+\label{tab:t2_misrouting}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+True & Routed to & n & Share & $\Delta$PSNR & $\Delta$SSIM & Harmful & Neutral & Benef. \\
+\midrule
+clean & blur & 26 & 0.0071 & -- & -0.0460 & 26 & 0 & 0 \\
+clean & occlusion & 15 & 0.0041 & -- & -0.1095 & 15 & 0 & 0 \\
+blur & clean & 5 & 0.0005 & 1.47 & 0.0176 & 0 & 1 & 4 \\
+occlusion & clean & 28 & 0.0025 & -3.05 & -0.0207 & 23 & 3 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}

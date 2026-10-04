@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Test PSNR (dB) / SSIM of the UDAE against the corrupted input (no restoration) and classical oracle baselines that are told the corruption (3x3 median filter for salt-and-pepper, unsharp masking with the known blur kernel, Telea inpainting of the known occlusion mask); the UDAE receives no such information. Clean inputs are returned unchanged by both baselines (exact, PSNR $=\infty$, stored as the 100 dB cap in the CSV), so the pooled row covers the three corruptions only.}
+\label{tab:task1_comparison_by_type}
+\begin{tabular}{lrrrrrr}
+\toprule
+Type & Corrupted input PSNR & Corrupted input SSIM & Oracle classical PSNR & Oracle classical SSIM & UDAE PSNR & UDAE SSIM \\
+\midrule
+clean & $\infty$ & 1.0000 & $\infty$ & 1.0000 & 32.21 & 0.9558 \\
+salt & 16.38 & 0.3819 & 29.23 & 0.8798 & 31.49 & 0.9449 \\
+blur & 27.82 & 0.8136 & 30.04 & 0.8550 & 29.15 & 0.8731 \\
+occlusion & 13.56 & 0.7081 & 23.34 & 0.8485 & 23.15 & 0.8198 \\
+corrupted & 19.26 & 0.6346 & 27.53 & 0.8611 & 27.93 & 0.8793 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Mean routing weight of each branch per true input type and severity; entropy normalised by log 4; Top-1: largest weight on the matching branch.}
+\label{tab:task3_routing_by_type_level}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Input & Level & n & identity & salt & blur & occlusion & Entropy & Top-1 \\
+\midrule
+clean & none & 3669 & 0.936 & 0.007 & 0.041 & 0.016 & 0.170 & 0.994 \\
+salt & low & 3669 & 0.008 & 0.992 & 0.000 & 0.001 & 0.029 & 1.000 \\
+salt & medium & 3669 & 0.002 & 0.998 & 0.000 & 0.000 & 0.009 & 1.000 \\
+salt & high & 3669 & 0.002 & 0.998 & 0.000 & 0.000 & 0.010 & 1.000 \\
+blur & low & 3669 & 0.071 & 0.001 & 0.927 & 0.001 & 0.184 & 0.999 \\
+blur & medium & 3669 & 0.032 & 0.000 & 0.967 & 0.001 & 0.105 & 1.000 \\
+blur & high & 3669 & 0.052 & 0.001 & 0.946 & 0.002 & 0.156 & 1.000 \\
+occlusion & low & 3669 & 0.024 & 0.001 & 0.000 & 0.974 & 0.052 & 0.991 \\
+occlusion & medium & 3669 & 0.004 & 0.001 & 0.000 & 0.996 & 0.016 & 1.000 \\
+occlusion & high & 3669 & 0.001 & 0.001 & 0.000 & 0.998 & 0.010 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}

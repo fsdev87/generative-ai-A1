@@ -12,7 +12,7 @@ import pandas as pd
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "outputs"
 CAP = 100.0 - 1e-6
-SYSTEMS = [("t1", "Task 1 universal", OUT / "task1/eval/test_records.csv"),
+SYSTEMS = [("t1", "Task 1 universal", OUT / "task1/variants/udae_skip32/eval/test_records.csv"),
            ("or", "Task 2 oracle", OUT / "task2/eval/test_records_oracle.csv"),
            ("pr", "Task 2 predicted", OUT / "task2/eval/test_records_predicted.csv"),
            ("t3", "Task 3 soft MoE", OUT / "task3/eval/test_records.csv")]

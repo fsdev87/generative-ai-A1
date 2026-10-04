@@ -1,0 +1,12 @@
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{2}{c}{Task 1 universal} & \multicolumn{2}{c}{Task 2 oracle} & \multicolumn{2}{c}{Task 2 predicted} & \multicolumn{2}{c}{Task 3 soft MoE} \\
+Input & PSNR* & SSIM & PSNR* & SSIM & PSNR* & SSIM & PSNR* & SSIM \\
+\midrule
+clean & 32.21 & 0.9558 & exact (3669) & 1.0000 & 29.91 (3628 exact) & 0.9992 & 60.77 & 0.9992 \\
+salt & 31.49 & 0.9449 & 33.07 & 0.9580 & 33.07 & 0.9580 & 33.62 & 0.9606 \\
+blur & 29.15 & 0.8731 & 30.35 & 0.9088 & 30.35 & 0.9088 & 30.72 & 0.9122 \\
+occlusion & 23.15 & 0.8198 & 23.95 & 0.8307 & 23.94 & 0.8306 & 24.02 & 0.8336 \\
+corrupted & 27.93 & 0.8793 & 29.12 & 0.8992 & 29.12 & 0.8992 & 29.45 & 0.9021 \\
+\bottomrule
+\end{tabular}

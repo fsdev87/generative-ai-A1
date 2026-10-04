@@ -1,0 +1,25 @@
+\begin{table}[t]
+\centering
+\caption{Oracle vs predicted hard routing on the test set. PSNR excludes outputs identical to the target (clean inputs passed through the identity bypass).}
+\label{tab:t2_oracle_vs_predicted}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+Type & Level & n & Route acc. & PSNR or. & PSNR pr. & SSIM or. & SSIM pr. & Misr. & Harmful \\
+\midrule
+clean & none & 3669 & 0.9888 & -- & 29.91 & 1.0 & 0.9992 & 41 & 41 \\
+salt & low & 3669 & 1.0000 & 33.53 & 33.53 & 0.9628 & 0.9628 & 0 & 0 \\
+salt & medium & 3669 & 1.0000 & 33.19 & 33.19 & 0.9593 & 0.9593 & 0 & 0 \\
+salt & high & 3669 & 1.0000 & 32.50 & 32.50 & 0.9520 & 0.9520 & 0 & 0 \\
+blur & low & 3669 & 0.9986 & 31.68 & 31.68 & 0.9419 & 0.9419 & 5 & 0 \\
+blur & medium & 3669 & 1.0000 & 30.59 & 30.59 & 0.9148 & 0.9148 & 0 & 0 \\
+blur & high & 3669 & 1.0000 & 28.78 & 28.78 & 0.8698 & 0.8698 & 0 & 0 \\
+occlusion & low & 3669 & 0.9924 & 26.76 & 26.74 & 0.9001 & 0.9000 & 28 & 23 \\
+occlusion & medium & 3669 & 1.0000 & 23.87 & 23.87 & 0.8415 & 0.8415 & 0 & 0 \\
+occlusion & high & 3669 & 1.0000 & 21.22 & 21.22 & 0.7505 & 0.7505 & 0 & 0 \\
+salt & all & 11007 & 1.0000 & 33.07 & 33.07 & 0.9580 & 0.9580 & 0 & 0 \\
+blur & all & 11007 & 0.9995 & 30.35 & 30.35 & 0.9088 & 0.9088 & 5 & 0 \\
+occlusion & all & 11007 & 0.9975 & 23.95 & 23.94 & 0.8307 & 0.8306 & 28 & 23 \\
+corrupted & all & 33021 & 0.9990 & 29.12 & 29.12 & 0.8992 & 0.8992 & 33 & 23 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering
+\caption{Skip-connection ablation on the test set. PSNR (dB) per input condition; SSIM pooled over the three corruptions; skip values / input: numbers carried by the skip paths per image relative to the 3x128x128 input; impulse survival: fraction of salt-and-pepper pixels still closer to the impulse than to the clean value (high severity, identity = 1); detail ratio: Laplacian energy of the output relative to the clean target on clean inputs (1 = as detailed as the target).}
+\label{tab:task1_skip_ablation}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+Model & Skips & Skip values / input & Clean & Salt & Blur & Occl. & SSIM (corr.) & Impulse surv. (high) & Detail ratio \\
+\midrule
+udae & none & 0.00 & 24.65 & 24.66 & 24.56 & 21.22 & 0.7790 & 0.002 & 0.480 \\
+udae_skip16 & 16 & 2.00 & 27.67 & 27.49 & 26.62 & 22.31 & 0.8407 & 0.002 & 0.663 \\
+udae_skip32 & 32 & 4.00 & 32.21 & 31.49 & 29.15 & 23.15 & 0.8793 & 0.001 & 0.806 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -111,10 +111,17 @@ a learned style embedding and a PatchGAN discriminator conditioned by projection
 Every model is tuned with Optuna, tracked with Weights \& Biases, exported to
 ONNX with a verified parity check, and served through a FastAPI backend behind a
 React interface that runs under Docker Compose.
-\todo{headline Task 1 result on the 33{,}021 corrupted test entries (deployed variant) and the skip-ablation finding}
-\todo{one sentence of headline results for the other systems once the Kaggle runs
-finish: Task~2 classifier macro-F1 and routing gain, Task~3 soft-routing gain over
-hard routing, Task~4 per-style SSIM and $L_1$}
+On the 33{,}021 corrupted entries of the official test manifest the deployed
+universal autoencoder, which keeps an $8\times8$ bottleneck plus one limited
+$32\times32$ skip, reaches 27.93~dB PSNR and 0.879 SSIM without being told the
+corruption; an ablation shows that the limited skip restores detail (clean detail
+ratio 0.48 to 0.81) while impulse survival \emph{falls}, so it does not leak the
+corruption. The corruption classifier reaches 0.998 test accuracy (macro-F1
+0.997), hard routing raises the corrupted-input PSNR to 29.12~dB and returns
+99\% of clean images exactly, and the soft mixture reaches 29.45~dB, beating hard
+routing on 83\% of corrupted entries with nearly one-hot routing. The sketch
+generator reaches SSIM 0.46 and $L_1$ 0.110 on the FS2K test set, and swapping the
+style raises its $L_1$ error by 38\%.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -796,7 +803,20 @@ to conceal.
 \subsection{Results}
 
 \subsubsection{Final training}
-\todo{final training of the three variants on Kaggle: parameters, epochs, best epoch and validation score per variant, epoch time; interpret the training curves}
+The configuration selected by the search (\texttt{configs/task1.yaml}) was
+trained three times on Kaggle for 60 epochs each, with identical hyperparameters:
+without skips (\texttt{udae}, 9.31\,M parameters), with one skip at $16\times16$
+(\texttt{udae\_skip16}, 10.64\,M) and with one skip at $32\times32$
+(\texttt{udae\_skip32}, 9.64\,M). All three keep the $64\times8\times8$ latent
+(4{,}096 values, $12\times$ compression). The best checkpoints are from epochs 56,
+59 and 59, so the cosine schedule was still improving the models in its final
+low-learning-rate epochs and early stopping never triggered. The deployed model
+was chosen by \emph{validation} score~(\ref{eq:score}), never by test results:
+0.6946 for \texttt{udae}, 0.7586 for \texttt{udae\_skip16} and 0.8187 for
+\texttt{udae\_skip32}, which is therefore the model served by the application and
+reported below. Its curves (Fig.~\ref{fig:task1curves}) show training and
+validation losses tracking each other closely, as expected when every epoch draws
+fresh corruptions, and occlusion as the lowest validation curve throughout.
 
 \begin{figure*}[t]
 \centering
@@ -809,7 +829,23 @@ The dotted line marks the best epoch (59).}
 \end{figure*}
 
 \subsubsection{Test results}
-\todo{test results of the deployed variant by type and severity with the identity and oracle-classical baselines; interpret}
+Tables~\ref{tab:task1bytype} and~\ref{tab:task1bylevel} give the test results of
+\texttt{udae\_skip32} on the 36{,}690 entries. Pooled over the 33{,}021 corrupted
+entries it reaches \textbf{27.93~dB / 0.879}, against 19.26~dB / 0.635 for the
+corrupted input and 27.53~dB / 0.861 for the oracle classical baselines, which are
+told the corruption, its parameters and the occlusion mask. The blind model thus
+beats the informed baselines on average: clearly on salt-and-pepper (31.49 against
+29.23~dB), slightly in SSIM on blur (0.873 against 0.855, though 0.9~dB lower in
+PSNR), and it is close on occlusion (23.15 against 23.34~dB), where content behind
+the mask must be synthesised. Quality falls with severity for blur (32.06, 29.18,
+26.22~dB) and occlusion (25.89, 23.05, 20.51~dB) but hardly for salt-and-pepper
+(32.01 to 30.85~dB); the high levels sit at the edge of the training ranges
+(Section~\ref{sec:data}). Clean inputs come back at 32.21~dB / 0.956: still not
+unchanged---everything except the $32\times32$ features passes the bottleneck---and
+for the mildest blur the output (32.06~dB) is slightly \emph{below} the corrupted
+input (32.34~dB). That residual cost of universality is what the identity branch
+of Tasks~2 and~3 removes. Salt-and-pepper impulse survival is 0.0009 and the clean
+detail ratio 0.81 (Table~\ref{tab:task1skip}).
 
 \begin{table*}[t]
 \caption{Task 1 test results per input condition (36{,}690 entries; 3{,}669 clean
@@ -876,7 +912,31 @@ ${\approx}25$~dB ceiling.}
 \end{figure*}
 
 \subsubsection{Skip-connection ablation}
-\todo{interpret Table~\ref{tab:task1skip}: PSNR/SSIM, impulse survival and detail ratio of udae, udae\_skip16, udae\_skip32; which variant is deployed and why (validation score), and whether any skip leaks the corruption}
+Table~\ref{tab:task1skip} and Fig.~\ref{fig:task1skipexamples} answer the question
+the ablation was designed for. Moving one skip from nowhere to $16\times16$ to
+$32\times32$ raises corrupted-input quality from 23.48~dB / 0.779 to 25.47~dB /
+0.841 to 27.93~dB / 0.879 and clean-input quality from 24.65 to 27.67 to
+32.21~dB, and the clean detail ratio from 0.48 to 0.66 to 0.81: the skip passes
+spatial detail that the $8\times8$ latent cannot hold. The predicted price---the
+corruption leaking through---does \emph{not} appear: impulse survival falls from
+0.0024 to 0.0014 to 0.0009. A $32\times32$ feature map has passed through two
+stride-2 blocks and carries features, not raw pixels, so an isolated impulse or
+the edge of a black rectangle is not copied to the output; the model restores
+rather than copies, and the $8\times8$ latent remains the only path for context.
+The skips carry two and four times as many values as the input, which is why the
+deployed model is described honestly as a bottleneck autoencoder \emph{with one
+limited skip}; the pure-bottleneck variant is kept as the reference that shows
+what the bottleneck alone achieves. The $128\times128$ skip was not trained: it is
+two convolutions from the raw pixels, the case in which leaking is expected.
+
+\begin{figure}[t]
+\centering
+\resultfig[0.2\textheight]{task1_skip_ablation_examples.png}{\columnwidth}{From
+\path{outputs/task1/figures/skip_ablation_examples.png}.}
+\caption{The same test entries restored by the three Task~1 variants (no skip,
+$16\times16$ skip, $32\times32$ skip).}
+\label{fig:task1skipexamples}
+\end{figure}
 \label{sec:task1skip}
 
 \begin{table}[t]
@@ -889,7 +949,21 @@ resolution, same hyperparameters and epoch budget as the main model.}
 \end{table}
 
 \subsection{Failure analysis}
-\todo{failure analysis from the new failure-case figure}
+Figure~\ref{fig:task1failures} shows the failures, chosen by rank rather than by
+hand. \emph{Black backgrounds read as occlusion:} the worst clean (11.3~dB /
+0.492), salt-and-pepper (12.5~dB) and occlusion (10.3~dB) outputs are the same cat
+photographed against a uniformly black background, which the model fills with a
+grey-green haze exactly as it fills occlusion rectangles; in training, large black
+regions are almost always masks, and a blind model cannot tell black content from
+a black mask (a limitation of the single-model design and the training
+distribution). \emph{Unrecoverable high frequencies:} the worst high-blur output
+(22.2~dB from 22.5~dB, SSIM 0.359) is a dog in front of a finely striped blind,
+whose stripes the strongest blur erased and the model cannot reinvent.
+\emph{No way to leave an image alone:} an occlusion rectangle that falls on a
+black background leaves the input practically unchanged (87.3~dB), yet the model
+returns 34.9~dB, and a mildly blurred grey cat on a saturated purple backdrop
+drops from 37.0 to 26.4~dB. Both are the price of universality, which the identity
+branch of Tasks~2 and~3 removes.
 
 \begin{figure}[t]
 \centering
@@ -1107,9 +1181,11 @@ specialist for 40 epochs (patience 10), independently and with its own seed,
 from the committed configurations. These runs were first made on Colab and are
 being repeated on Kaggle, with identical configurations, after the Colab GPU
 quota ran out (Section~\ref{sec:setup}); the results below come from the Kaggle
-run. \todo{best epoch and validation macro-F1 of the final classifier, best epoch
-and validation score of each specialist, and epoch times on the Kaggle T4, from
-the Kaggle logs or Weights \& Biases}
+run. On Kaggle the classifier early-stopped with its best validation macro-F1,
+0.9946, at epoch 20, and the three specialists---now with one limited
+$32\times32$ skip each (\texttt{configs/task2\_specialists\_skip.yaml}), mirroring
+the deployed Task~1 model---reached their best validation scores at epochs 39
+(salt-and-pepper), 39 (blur) and 35 (occlusion) of 40.
 
 \subsection{Results}
 
@@ -1148,10 +1224,14 @@ the two directly comparable.}
 \label{fig:task2confusion}
 \end{figure}
 
-\todo{paragraph interpreting Table~\ref{tab:task2clf} and
-Figure~\ref{fig:task2confusion} from the Kaggle run: overall accuracy and
-macro-F1, which confusions dominate, and whether they are concentrated at the low
-severity levels (\path{outputs/task2/tables/classifier_test_by_type_level.csv})}
+The classifier makes 74 errors on the 36{,}690 test entries: accuracy
+\textbf{0.998}, macro-precision 0.997, macro-recall 0.997 and macro-F1
+\textbf{0.997} (Table~\ref{tab:task2clf}, Fig.~\ref{fig:task2confusion}).
+Salt-and-pepper is recognised perfectly at every level, and so are the medium and
+high levels of blur and occlusion. All errors involve the clean class and the
+\emph{mildest} corruptions: 26 clean photographs are called blurred and 15
+occluded (clean recall 0.989), 5 low-blur entries (0.14\% of that level) and 28
+low-occlusion entries (0.76\%) are called clean.
 
 \begin{figure}[t]
 \centering
@@ -1165,12 +1245,21 @@ the reason given in Section~\ref{sec:data}.}
 \label{fig:task2blur}
 \end{figure}
 
-\todo{paragraph on the two expected confusion mechanisms, with numbers:
-(i) naturally soft or low-resolution clean photographs being called blurred,
-quantified against the variance of the Laplacian as a focus
-measure~\cite{pech2000diatom} with Wilson intervals~\cite{wilson1927probable};
-(ii) dark image content being called occlusion, and black occlusion rectangles
-on already-dark fur going undetected}
+Both expected confusion mechanisms are visible, and both are measurable.
+\emph{Soft photographs look blurred:} splitting clean photographs into quartiles
+of natural sharpness (variance of the Laplacian~\cite{pech2000diatom}), the false
+``blur'' rate is 2.5\% in the softest quartile, 0.3\% in the second and zero in
+the two sharpest (Fig.~\ref{fig:task2blur}); the clean photographs called blurred
+have a median sharpness of 0.0052 against 0.0162 for those classified correctly.
+Contrary to our expectation, the classifier is not fooled by the mildest
+\emph{real} blur: the low level, strength 0.65~px, is detected in 99.9\% of
+cases. \emph{Dark content looks occluded:} clean photographs with at least 30\%
+near-black pixels are called occluded in 5.9\% of cases, against none below 5\%;
+conversely, a rectangle whose area was already at least 60\% black is detected in
+only 87\% of cases, against 99.9\% when it covers bright content. Black letterbox
+bands are the typical clean-to-occlusion error in Fig.~\ref{fig:task2failures}.
+Both mechanisms are properties of the data, not of the model size: the evidence
+for the correct class is genuinely weak.
 
 \begin{table*}[t]
 \caption{Hard-routed restoration on the test manifest: oracle routing (true label)
@@ -1193,10 +1282,15 @@ salt & low & 3669 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \missingtable{task2_routing_oracle_vs_predicted.tex}{outputs/task2/tables/routing_oracle_vs_predicted.tex}}
 \end{table*}
 
-\todo{paragraph interpreting Table~\ref{tab:task2routing}: the specialists' own
-quality under oracle routing against the UDAE of Table~\ref{tab:task1bylevel}
-(bearing in mind the bottleneck confound above), and how close predicted routing
-comes to oracle routing}
+Under oracle routing the specialists reach 33.07~dB / 0.958 on salt-and-pepper,
+30.35~dB / 0.909 on blur and 23.95~dB / 0.831 on occlusion, 29.12~dB / 0.899
+pooled over the corrupted entries, against 27.93~dB / 0.879 for the deployed
+universal model (Table~\ref{tab:crosstask}); clean inputs are returned exactly.
+Predicted routing is practically identical: routing accuracy on the corrupted
+entries is 0.999, the pooled PSNR differs by $-0.002$~dB, and 3{,}628 of the 3{,}669
+clean inputs (98.9\%) still pass through the identity bypass exactly. With a
+near-perfect classifier, the operational system loses almost nothing to its
+router.
 
 \textbf{Clean inputs and the PSNR cap.} Under oracle routing every clean input
 passes through the identity bypass, so the output equals the target exactly:
@@ -1237,17 +1331,18 @@ clean & blur & \tbd & \tbd & \tbd \\
 \missingtable{task2_routing_misrouting.tex}{outputs/task2/tables/routing_misrouting.tex}}
 \end{table}
 
-\todo{discussion of Table~\ref{tab:task2misrouting} and
-Figure~\ref{fig:task2failures}: for each (true, routed-to) pair, how many entries,
-at which severities, and the mean PSNR change relative to oracle routing.
-Separate harmful misroutings ($\geq 1$~dB worse) from neutral and
-\emph{beneficial} ones: a mild blur routed to the identity can score better than
-the blur specialist's reconstruction if the bottleneck loses more detail than the
-blur itself removed. Report beneficial misroutings explicitly rather than
-omitting them, and relate the clean-to-occlusion confusions to dark image
-content (\path{outputs/task2/tables/classifier_dark_regions.csv}) and the
-clean-to-blur confusions to natural softness
-(\path{outputs/task2/figures/classifier_sharpness.png})}
+Table~\ref{tab:task2misrouting} lists the four confusions. \emph{Clean routed to
+an expert} (26 to blur, 15 to occlusion) is always harmful by construction, since
+the oracle output is exact; the blur specialist still returns these images at
+33.0~dB on average, the occlusion specialist at 24.6~dB because it ``fills'' dark
+bands that were content (Fig.~\ref{fig:task2failures}). \emph{Low occlusion routed
+to the identity} (28 entries) is the most damaging confusion: the rectangle is
+left in place and PSNR falls by 3.05~dB on average (23 harmful, 3 neutral, 2
+beneficial). \emph{Low blur routed to the identity} (5 entries) is the opposite
+case: 4 of the 5 are \emph{beneficial} and the mean change is $+1.47$~dB, because
+for a blur this mild the unmodified input is closer to the clean image than the
+specialist's reconstruction. Misrouting therefore matters only at the low
+severities, and not always in the harmful direction.
 
 \section{Task 3: Soft Mixture-of-Experts Restoration}
 \label{sec:task3}
@@ -1472,21 +1567,24 @@ brief's starting configuration.}
 \centering
 \footnotesize
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}llp{2.3cm}c@{}}
+\begin{tabular}{@{}llp{1.6cm}c@{}}
 \toprule
 Parameter & Range & Rationale & Selected \\
 \midrule
-Joint learning rate & $10^{-5}$--$3\times10^{-4}$ & log; capped at the warm-up rate & \tbd \\
-Temperature $\tau$ & $0.3$--$3.0$ & log; near-hard to near-uniform & \tbd \\
-$\lambda_c$ & $0.01$--$1.0$ & log; a decade either side of 0.1 & \tbd \\
-$\lambda_b$ & $10^{-3}$--$10^{-1}$ & log; contains Switch's $10^{-2}$ & \tbd \\
-$\alpha$ ($\lambda_1 = \alpha$, $\lambda_s = 1-\alpha$) & $0.5$--$0.95$ & constant reconstruction scale & \tbd \\
+Joint learning rate & $10^{-5}$--$3\times10^{-4}$ & log; capped at the warm-up rate & $3.57\times10^{-5}$ \\
+Temperature $\tau$ & $0.3$--$3.0$ & log; near-hard to near-uniform & 2.68 \\
+$\lambda_c$ & $0.01$--$1.0$ & log; a decade either side of 0.1 & 0.291 \\
+$\lambda_b$ & $10^{-3}$--$10^{-1}$ & log; contains Switch's $10^{-2}$ & 0.0158 \\
+$\alpha$ ($=\lambda_1 = 1-\lambda_s$) & $0.5$--$0.95$ & constant reconstruction scale & 0.570 \\
 \bottomrule
 \end{tabular}
 \\[2pt]
-\todo{fill the Selected column from \path{outputs/task3/best_config.yaml} and
-state the best trial, its validation score and the number of completed, pruned
-and collapse-pruned trials (\path{outputs/task3/optuna/task3_moe/trials.csv})}
+Six trials ran in 19.3 minutes (five completed, one pruned by the median rule).
+The best was trial~1 with a validation score of 0.8671, against 0.8667 for the
+brief's reference configuration (trial~0); all six trials lie within 0.8661--0.8671.
+The mixture starts from trained components, so over four epochs its score is almost
+insensitive to these hyperparameters---including $\tau$, which varied from 0.34 to
+2.80 across trials.
 \end{table}
 
 \begin{figure*}[t]
@@ -1503,11 +1601,13 @@ ones (right).}
 
 \subsection{Results}
 
-\todo{final training on Kaggle (2 warm-up + 10 joint epochs): best epoch,
-validation score, epoch time, and the routing-collapse check at the best epoch,
-from the Kaggle log or Weights \& Biases; add the validation curves exported from
-Weights \& Biases as \path{report/figures/task3_training_curves.png} if space
-allows}
+The selected configuration was fine-tuned for 2 warm-up and 10 joint epochs,
+starting from the new Task~2 checkpoints (classifier epoch 20; specialists epochs
+39, 39 and 35); the best validation score, 0.8673, was reached at epoch~8, and the
+routing-collapse check never fired. On the test manifest the mixture reaches
+29.45~dB / 0.902 on the corrupted entries (salt-and-pepper 33.62~dB / 0.961, blur
+30.72~dB / 0.912, occlusion 24.02~dB / 0.834) and 60.77~dB / 0.999 on clean inputs
+(Table~\ref{tab:task3results}).
 
 \begin{table}[t]
 \caption{Soft mixture-of-experts restoration on the test manifest, per input type
@@ -1535,7 +1635,7 @@ of hard routing is often empty; the clean row is best compared by SSIM.}
 \label{tab:crosstask}
 \centering
 \footnotesize
-\resulttable{task3_comparison_by_type.tex}{%
+\resulttable{crosstask_by_type.tex}{%
 \begin{tabular}{@{}lcccccccc@{}}
 \toprule
 \multirow{2}{*}{Input} & \multicolumn{2}{c}{Task 1 universal} & \multicolumn{2}{c}{Task 2 oracle} & \multicolumn{2}{c}{Task 2 predicted} & \multicolumn{2}{c}{Task 3 soft MoE} \\
@@ -1563,13 +1663,36 @@ mixture on identical test entries.}
 \label{fig:crosstask}
 \end{figure*}
 
-\todo{paragraph interpreting Table~\ref{tab:crosstask} and
-Fig.~\ref{fig:crosstask}: which design is best on which corruption; whether the
-identity branch removes the ${\approx}25$~dB ceiling of Task~1 on clean and mildly
-corrupted inputs; the paired per-entry win rate and mean PSNR gain of the soft
-mixture over hard predicted routing, overall and split by whether the Task~2
-classifier was right or wrong (\path{outputs/task3/tables/comparison_paired.csv}),
-remembering the bottleneck confound of Section~\ref{sec:task2}}
+\begin{table}[t]
+\caption{Paired per-entry comparison on the corrupted test entries (built by
+\texttt{report/crosstask\_table.py} from the four per-entry record files): mean PSNR
+gain and share of entries on which the first system is better.}
+\label{tab:paired}
+\centering
+\footnotesize
+\resulttable{crosstask_paired.tex}{\missingtable{crosstask_paired.tex}{report/crosstask_table.py}}
+\end{table}
+
+\textbf{Cross-task comparison.} Tables~\ref{tab:crosstask} and~\ref{tab:paired}
+compare the deployed universal model (\texttt{udae\_skip32}), hard routing and the
+soft mixture on identical entries. The ranking is the same for every corruption:
+soft mixture $>$ hard routing $>$ universal model. Over the 33{,}021 corrupted
+entries the mixture reaches 29.45~dB / 0.902, hard routing 29.12~dB / 0.899 in
+both modes and the universal model 27.93~dB / 0.879. Paired, the mixture beats the
+universal model on 90.7\% of the corrupted entries (+1.52~dB on average; on all
+11{,}007 salt-and-pepper entries) and hard predicted routing on 83.3\% (+0.33~dB;
+99.8\% of salt-and-pepper, 93.8\% of blur but only 56.3\% of occlusion entries,
++0.08~dB). Hard routing beats the universal model on 84.8\% of entries
+(+1.19~dB). The gains are largest for salt-and-pepper and smallest for
+occlusion, where every system is limited by the missing content. Clean inputs
+separate the designs most clearly: the universal model returns them at 32.21~dB,
+hard routing exactly in 3{,}628 of 3{,}669 cases, and the mixture at 60.77~dB with
+SSIM 0.9992. Two caveats apply: the specialists' latent is twice the universal
+model's (Section~\ref{sec:task2}), and the specialists and the deployed universal
+model both use one $32\times32$ skip, so the comparison isolates routing from
+the skip but not from latent size. The soft mixture's advantage over hard
+routing does not come from blending (the routing below is nearly one-hot) but
+from the joint fine-tuning of gate and experts on all four conditions.
 
 \subsubsection{Gating analysis}
 
@@ -1624,16 +1747,27 @@ hand, so they are reproducible.}
 \label{fig:task3gating}
 \end{figure*}
 
-\todo{paragraph interpreting Figures~\ref{fig:task3heatmap}--\ref{fig:task3gating}
-and Table~\ref{tab:task3activity}: how routing weight varies with severity (are
-mild corruptions routed more softly?), whether any expert became inactive or
-dominates unrelated inputs (collapse verdict and mean normalised entropy from
-\path{outputs/task3/tables/routing_entropy.tex}), what the selected $\tau$ implies
-about where the system sits between hard and uniform routing, and whether the
-balance weight was large enough to matter. Expectation recorded before the run:
-because the gate starts from a near-perfect classifier, routing on the standard
-test set is likely to be almost one-hot, and the two-corruption experiment is
-where soft routing can differ}
+\textbf{Routing is sharp, not spread.} Despite the selected temperature
+$\tau = 2.68$, near the soft end of the range, the gate routes almost one-hot: the
+largest weight is on the correct branch for 99.8\% of test entries, the mean
+routing entropy normalised by $\log 4$ is 0.074, and the diagonal of the routing
+matrix is 0.936 (clean to identity), 0.996, 0.947 and 0.989
+(Fig.~\ref{fig:task3heatmap}, Table~\ref{tab:task3activity}). No branch is dead or
+dominating: usage is 0.250, 0.251, 0.247 and 0.252 against the ideal 0.25, and the
+largest mean weight any branch takes on other classes is 0.022, so the collapse
+criterion is far from triggering. The likely explanation is that the cross-entropy
+term acts on the raw gate logits, initialised from a classifier trained to
+confidence, so the logits are large and dividing them by 2.68 still leaves
+near-one-hot weights: $\tau$ and the logit scale trade off, which is also why the
+score barely depended on $\tau$ in the search. Softness appears exactly where the
+evidence is weakest: the entropy is highest for clean inputs (0.170) and blur
+(0.148, 0.184 at the low level), where the gate hedges between the identity and the
+blur expert---a clean image receives 0.041 blur weight on average and a low blur
+0.071 identity weight---while salt-and-pepper (0.016) and occlusion (0.026) are
+routed almost deterministically; mild corruptions are routed more softly than
+strong ones. The high-entropy examples in Fig.~\ref{fig:task3gating} are of this
+kind: dark or soft images, and small rectangles on dark regions, where identity
+and the relevant expert share the weight.
 
 \subsection{Failure analysis}
 
@@ -1663,17 +1797,27 @@ salt+blur & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \missingtable{task3_mixed_routing.tex}{outputs/task3/mixed/mixed_routing.tex}}
 \end{table}
 
-\todo{discussion of Figure~\ref{fig:task3failures} (also
-\path{outputs/task3/figures/failures.png}): the worst mis-routed entries, whether
-soft routing recovers cases where the Task~2 classifier was confidently wrong, and
-cases where blending made the result worse than hard routing would have. Then the
-optional two-corruption experiment (\path{manifests/pets_mixed_manifest.json};
-Table~\ref{tab:task3mixed}, restoration in
-\path{outputs/task3/mixed/mixed_summary.tex}, examples in
-\path{outputs/task3/mixed/mixed_examples.png}), clearly labelled as beyond the
-brief's corruption definitions: mean weights per combination, the share of
-entries whose two largest weights are the two corruptions present, and soft
-against hard routing on these inputs}
+The worst entries whose largest weight is on a wrong branch
+(Fig.~\ref{fig:task3failures}) are the cases Task~2 also missed---small rectangles on
+dark regions and soft clean photographs---so soft routing recovers misroutings
+only partly: blending the identity with the right expert leaves part of a rectangle
+or part of the blur. On average, however, the joint fine-tuning pays off: the
+mixture beats hard predicted routing on 83.3\% of the corrupted entries
+(Table~\ref{tab:paired}).
+
+\textbf{Beyond the brief: two corruptions per image.} As an extra experiment,
+clearly outside the brief's corruption definitions, 900 test images were given two
+corruptions at medium severity (Table~\ref{tab:task3mixed}). One might expect the
+gate to split its weight between the two corresponding experts; it does not. It
+picks a single expert with a fixed precedence---salt-and-pepper over blur and over
+occlusion, occlusion over blur---with weight 0.998 or more, and the two largest
+weights are exactly the two corruptions present only for salt plus occlusion, where
+the second weight is negligible. Consequently soft and argmax routing of the same
+mixture are indistinguishable (20.80~dB both, against 13.37~dB for the input), and
+the mixture is only 0.12~dB better than Task~2's hard routing (20.69~dB). For salt
+plus occlusion every system stays near 13.4~dB, since the salt-and-pepper expert
+removes the impulses but leaves the rectangle. Restoring compound degradations
+would need experts trained on them or genuinely sequential routing.
 
 \section{Task 4: Style-Conditioned Face-to-Sketch Generation}
 \label{sec:task4}
@@ -1811,23 +1955,25 @@ $1.5\times10^{-4}$ and the task was retrained; only the second run is reported.
 \label{tab:task4search}
 \centering
 \setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{@{}lllcc@{}}
+\setlength{\tabcolsep}{2.5pt}\begin{tabular}{@{}lllcc@{}}
 \toprule
 Parameter & Range & Scale & Trial 0 & Selected \\
 \midrule
-$\eta_G$ & $5\times10^{-5}$--$5\times10^{-4}$ & log & $2\times10^{-4}$ & \tbd \\
-$\eta_D$ & $5\times10^{-5}$--$5\times10^{-4}$ & log & $2\times10^{-4}$ & \tbd \\
-Batch size & $\{4, 8, 16\}$ & cat. & 8 & \tbd \\
-Base channels & $\{32, 48, 64\}$ & cat. & 64 & \tbd \\
-Dropout & $0.0$--$0.5$ & uniform & 0.5 & \tbd \\
-Style dim. & $\{8, 16, 32\}$ & cat. & 16 & \tbd \\
-$\lambda_{L_1}$ & $25$--$200$ & log & 100 & \tbd \\
+$\eta_G$ & $5\times10^{-5}$--$5\times10^{-4}$ & log & $2\times10^{-4}$ & $4.04\times10^{-4}$ \\
+$\eta_D$ & $1.5\times10^{-4}$--$5\times10^{-4}$ & log & $2\times10^{-4}$ & $2.03\times10^{-4}$ \\
+Batch size & $\{4, 8, 16\}$ & cat. & 8 & 8 \\
+Base channels & $\{32, 48, 64\}$ & cat. & 64 & 48 \\
+Dropout & $0.0$--$0.5$ & uniform & 0.5 & 0.465 \\
+Style dim. & $\{8, 16, 32\}$ & cat. & 16 & 32 \\
+$\lambda_{L_1}$ & $25$--$200$ & log & 100 & 133 \\
 \bottomrule
 \end{tabular}
 \\[2pt]
-\todo{fill the Selected column from \path{outputs/task4/best_config.yaml}; state the
-best trial, its validation sketch score and the numbers of completed and pruned
-trials (\path{outputs/task4/optuna/task4_cgan/trials.csv})}
+Eighteen trials ran in 31.0 minutes of trial time (10 completed, 8 pruned). The
+best was trial~9, with a validation sketch score of 0.6710 against 0.6597 for the
+pix2pix reference (trial~0). The four best trials all used $\lambda_{L_1}$
+between 98 and 184 and a generator learning rate 1.5 to 2.6 times the
+discriminator's.
 \end{table}
 
 The ranges are an octave either side of pix2pix's $2\times10^{-4}$ for both
@@ -1850,9 +1996,10 @@ history (left) and parameter importances (right).}
 
 \subsection{Results}
 
-\todo{final 120-epoch run on Kaggle: best epoch, validation sketch score and epoch
-time (Kaggle log or Weights \& Biases), and whether the mixed-precision losses
-stayed finite throughout}
+The selected configuration was trained for 200 epochs; the best validation
+sketch score, 0.6885, was reached at epoch 97. The losses stayed finite under fp16
+autocast throughout---the training code aborts on any non-finite loss, and the run
+completed.
 
 \begin{table}[t]
 \caption{Task 4 results on the official FS2K test set (1{,}046 pairs), per style:
@@ -1935,27 +2082,23 @@ ground truth and generated sketch.}
 \label{fig:task4examples}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\resultfig{task4_training_curves.png}{\columnwidth}{No script writes this figure:
-export from the Weights \& Biases run of the final Task~4 training the panels
-\texttt{train/d\_real}, \texttt{train/d\_fake}, \texttt{train/g\_adv},
-\texttt{train/g\_l1} and the validation metrics, and save them as
-\path{report/figures/task4_training_curves.png}.}
-\caption{Task 4 training curves: discriminator real and fake losses, generator
-adversarial and reconstruction losses, and validation measurements, each logged
-separately as the brief requires.}
-\label{fig:task4curves}
-\end{figure}
-
-\todo{paragraph reporting the style-sensitivity check (\texttt{style\_sensitivity}
-in \path{outputs/task4/eval/summary.json}: test $L_1$ under the true style
-against the mean under the two wrong styles, and their gap) and what it says
-about how much the model actually uses the condition, as opposed to inferring the
-style from the photograph's appearance---the confound identified in
-Section~\ref{sec:data}; then interpret Tables~\ref{tab:task4}
-and~\ref{tab:task4source}, including the seen/unseen split
-(\texttt{by\_seen\_combination} in the same file)}
+On the 1{,}046 official test pairs the generator reaches $L_1$ 0.110, SSIM 0.457
+and PSNR 15.33~dB (macro over styles: 0.109, 0.463, 15.44~dB;
+Table~\ref{tab:task4}). Style~2, drawn with dense dark strokes, is the hardest
+($L_1$ 0.154, SSIM 0.390), styles 1 and 3 are close ($L_1$ 0.085 and 0.087). The
+edge ratio is below one for every style (0.56, 0.53, 0.70): the generated strokes
+are softer than the artist's, the blur that the $L_1$ term induces and the adversarial
+term only partly removes. \textbf{The condition is used.} Generating each test
+photograph with a wrong style raises $L_1$ from 0.110 to 0.152, a gap of 0.042 (38\%),
+and the style-swap grid (Fig.~\ref{fig:task4grid}) shows three clearly different
+renderings of the same photograph---light contours, dark dense strokes, grey
+shading. \textbf{The source/style confound does not dominate.} The 180 test pairs
+whose (source, style) combination never occurs in training score as well as the
+866 seen pairs ($L_1$ 0.110 against 0.110, SSIM 0.467 against 0.455), so style is
+not merely inferred from the photograph. Within Style~1 the unseen
+\texttt{photo3} pairs have a higher $L_1$ than \texttt{photo1} (0.110 against 0.075,
+Table~\ref{tab:task4source}), a difference of the size expected from their
+grey-paper background offset of roughly ten grey levels (Section~\ref{sec:data}).
 
 \subsection{Failure analysis}
 
@@ -1969,11 +2112,14 @@ are written to \texttt{outputs/task4/eval/failure\_cases.csv}.}
 \label{fig:task4failures}
 \end{figure}
 
-\todo{failure cases from Figure~\ref{fig:task4failures} and
-\path{outputs/task4/eval/failure_cases.csv}: photographs far from the FS2K framing
-(off-centre or small faces), the unseen (source, style) combinations in the test
-set, the grey-paper offset affecting the 179 \texttt{photo3} style-1 pairs, and
-any style for which the condition is weakly obeyed}
+All six lowest-scoring test pairs (Fig.~\ref{fig:task4failures}) are
+\texttt{photo1} portraits with long, voluminous hair, five of them Style~2, and all
+carry the automatic note ``strokes too soft'' (edge ratios 0.38--0.58): where the
+artist drew dense, dark hair strokes the generator produces thinner grey ones,
+the $L_1$-induced blur at its most visible. The worst case is labelled Style~1 but
+its ground truth is drawn with heavy dark strokes more typical of Style~2; the
+generator follows the label and draws light contours, so part of this error
+reflects variation in the annotation rather than in the generator.
 
 \section{Experimental Setup}
 \label{sec:setup}
@@ -2048,14 +2194,12 @@ Study & GPU & Trials $\times$ ep. & C/P & Time & Final run \\
 T1 UDAE & Colab & 33 (of 40) $\times$ 15 & 15/18 & 89.6 min & $3{\times}60$ ep., Kaggle \\
 T2 classifier & Colab & 30 $\times$ 12 & 5/25 & 15.6 min & 60 ep., Kaggle \\
 T2 specialists & Colab & 20 $\times$ 6 ($\times 3$) & 12/8 & 61.5 min & $3{\times}40$ ep., Kaggle \\
-T3 soft MoE & Kaggle & 6 $\times$ (1+3) & \tbd & \tbd & 2+10 ep. \\
-T4 cGAN & Kaggle & 18 $\times$ 12 & \tbd & \tbd & 200 ep. \\
+T3 soft MoE & Kaggle & 6 $\times$ (1+3) & 5/1 & 19.3 min & 2+10 ep. \\
+T4 cGAN & Kaggle & 18 $\times$ 12 & 10/8 & 31.0 min & 200 ep. \\
 \bottomrule
 \end{tabular}
 \\[2pt]
-\todo{fill the Task 3 and Task 4 rows and the Kaggle final-run times from
-\path{outputs/task3/optuna/task3_moe/summary.json},
-\path{outputs/task4/optuna/task4_cgan/summary.json} and the Kaggle logs}
+
 \end{table}
 
 \textbf{Experiment tracking} uses Weights \& Biases~\cite{wandb}, in the project
@@ -2066,8 +2210,7 @@ per-epoch validation metrics logged; final runs additionally log per-condition
 metrics, sample image grids at fixed intervals using \emph{fixed} validation
 indices so that progress is comparable across epochs, and the best checkpoint as
 a model artefact. The Colab and Kaggle runs log to the same project.
-\todo{make the Weights \& Biases project public (or link a W\&B report) before
-submission}
+
 
 \section{Application Architecture}
 \label{sec:app}
@@ -2260,13 +2403,16 @@ versions targets opset 18 and can emit invalid \texttt{Split} nodes. Every expor
 evaluation mode on at least 32 \emph{real} test inputs spanning all conditions and
 severities---not random noise, so that the gate sees realistic logits---and the
 maximum absolute difference must stay below $10^{-4}$, or the file is rejected
-and the script fails. \todo{measured parity of all exported models (from the model cards)} Each model
+and the script fails. The measured maximum differences are $7.2\times10^{-7}$ (universal
+autoencoder), $1.2\times10^{-7}$ (classifier probabilities), $1.6\times10^{-6}$,
+$2.1\times10^{-6}$ and $9.4\times10^{-6}$ (salt-and-pepper, blur and occlusion
+specialists), $1.1\times10^{-5}$ (mixture output; $1.2\times10^{-7}$ for its weights)
+and $2.5\times10^{-6}$ (generator), all at least nine times inside the tolerance. Each model
 is accompanied by a JSON model card recording its configuration, input and output
 specification, preprocessing, test metrics, hyperparameters, the measured
 parity, the Weights \& Biases run URL, the git commit and the export time; the
 backend shows these cards in the application's system-information panel.
-\todo{measured parity of the classifier, the three specialists, the mixture and
-the generator, from the model cards of the Kaggle run}
+
 
 \section{Limitations}
 \label{sec:limitations}
@@ -2318,8 +2464,7 @@ gradient scalers for the generator and the discriminator. Its numerical
 stability could not be verified before the Kaggle run, since the development
 machine had no GPU; a non-finite loss aborts the run (or prunes the trial) rather
 than producing silent NaNs, and full precision remains available as a fallback.
-\todo{confirm from the Kaggle log that every Task~4 trial and the final run kept
-finite losses, or state which trials were pruned for non-finite losses}
+
 
 \emph{Scale.} With 2{,}944 training images at $128 \times 128$ and models of a
 few million parameters, none of these systems is comparable with published
@@ -2365,16 +2510,28 @@ with GPU timings.
 
 \section{Conclusion}
 
-\todo{conclusion, to be written once results exist. It should state: which of
-the three restoration designs performed best overall and on which corruptions;
-whether explicit routing (Task 2) justified its extra complexity over one shared
-model (Task 1); whether making the routing soft and differentiable (Task 3)
-recovered the classifier errors it was intended to, and at what cost; whether
-the Task 4 generator genuinely uses the style condition rather than inferring
-style from the photograph; and which of the research-driven design decisions
-(pure bottleneck, L1/SSIM mixture, resize-convolution, balance regulariser,
-decoder FiLM with a projection discriminator) were confirmed by the experiments
-and which were not.}
+Three restoration designs were built on one data pipeline and compared on
+identical test entries. Explicit routing justified its complexity: a classifier
+that is right on 99.8\% of inputs lets three specialists beat the universal model
+by 1.2~dB on the corrupted entries and return 99\% of clean images exactly, which a
+universal autoencoder can never do. Making the routing soft and training it
+jointly gained a further 0.33~dB, consistently across corruptions, but not through
+blending: the learned gate is nearly one-hot, the temperature is compensated by
+the logit scale, and on images with two corruptions the gate still picks one
+expert. The gain comes from fine-tuning gate and experts together. Of the
+research-driven decisions, the experiments confirmed the SSIM-heavy loss weighting
+(both searches moved $\alpha$ far below the brief's 0.8, consistent with Zhao et
+al.), resize-convolution (no checkerboard artefacts appear), the balanced sampler
+with the brief's balance term (no collapse, usage within 0.004 of $1/4$) and decoder
+FiLM with a projection discriminator (a wrong style raises $L_1$ by 38\%, and
+unseen source/style combinations generalise). One decision was revised by
+evidence: the pure bottleneck. The ablation showed that one limited skip at
+$32\times32$ restores detail (detail ratio 0.48 to 0.81, +4.5~dB on the corrupted
+entries) while impulse survival falls, so the deployed models keep the $8\times8$
+latent but add that skip. The largest remaining weaknesses are occlusion, where
+every system is limited by content that must be invented, and the soft strokes of
+the sketch generator, which a perceptual or sharper adversarial objective would be
+the next step to address.
 
 \appendix[Use of AI assistance]
 
@@ -2489,7 +2646,7 @@ The complete implementation---data preparation, training, Optuna search,
 evaluation and ONNX export scripts, backend, frontend, Dockerfiles and Docker
 Compose configuration---is available at \url{\repourl}; the application starts
 with \texttt{docker compose up --build} once the ONNX models are placed in
-\texttt{models/} \todo{download link of the trained ONNX models}. Experiment
+\texttt{models/} (\url{https://github.com/fsdev87/generative-ai-A1/releases/latest/download/models.zip}). Experiment
 tracking records are in the Weights \& Biases project
 \url{https://wandb.ai/mustafafaraz87-fast-nuces/genai-a1}. The demonstration video
 is at \todo{YouTube link}.
