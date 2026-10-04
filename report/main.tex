@@ -110,12 +110,8 @@ styles of the FS2K dataset, using a U-Net generator whose decoder is modulated b
 a learned style embedding and a PatchGAN discriminator conditioned by projection.
 Every model is tuned with Optuna, tracked with Weights \& Biases, exported to
 ONNX with a verified parity check, and served through a FastAPI backend behind a
-React interface that runs under Docker Compose. On the 33{,}021 corrupted entries
-of the official test manifest the universal autoencoder reaches 23.82~dB PSNR and
-0.7845 SSIM without being told the corruption, removes 99.8\% of salt-and-pepper
-impulses, and pays for its 12$\times$ bottleneck with a near-constant
-${\approx}25$~dB output ceiling that costs detail on clean and mildly corrupted
-inputs---the limitation that motivates explicit and soft routing.
+React interface that runs under Docker Compose.
+\todo{headline Task 1 result on the 33{,}021 corrupted test entries (deployed variant) and the skip-ablation finding}
 \todo{one sentence of headline results for the other systems once the Kaggle runs
 finish: Task~2 classifier macro-F1 and routing gain, Task~3 soft-routing gain over
 hard routing, Task~4 per-style SSIM and $L_1$}
@@ -590,16 +586,22 @@ simpler resize-convolution was used.)
 
 \subsubsection{Skip connections}
 
-The main model has \textbf{no skip connections}. Unrestricted skips, as in
-U-Net~\cite{ronneberger2015unet}, would let the decoder copy the input around the
-bottleneck, which the brief rules out; and for this task they are actively
-harmful, because here the input \emph{is} the corruption---a full-resolution skip
-hands salt-and-pepper impulses and black occlusion rectangles straight to the
-decoder. Since skips are nonetheless standard in restoration, and RED-Net
-attributes real gains to them~\cite{mao2016image}, an ablation was designed to
-measure their effect rather than assume it: three variants add exactly one skip,
-at $16\times16$, $32\times32$ and $128\times128$ respectively, with identical
-hyperparameters and epoch budget. Even the $16\times16$ skip carries
+Unrestricted skips, as in U-Net~\cite{ronneberger2015unet}, would let the decoder
+copy the input around the bottleneck, which the brief rules out; and for this task
+a full-resolution skip is actively harmful, because here the input \emph{is} the
+corruption---it hands salt-and-pepper impulses and black occlusion rectangles
+straight to the decoder. A first model without any skip, however, plateaued at an
+output quality that was nearly independent of the input and lost about half of the
+fine detail even on clean images (the $8\times8$ latent is the only path for
+texture). Since skips are standard in restoration and RED-Net attributes real gains
+to them~\cite{mao2016image}, the final Task~1 models were trained as an ablation
+that measures their effect rather than assuming it: the selected configuration was
+trained \emph{three} times with identical hyperparameters and epoch budget---no skip
+(\texttt{udae}), one skip at $16\times16$ (\texttt{udae\_skip16}) and one at
+$32\times32$ (\texttt{udae\_skip32})---and all three were evaluated on the full test
+manifest. Skips are only ever taken from deep, low-resolution encoder levels, never
+from full resolution, and the latent remains the only path at the coarsest scale, so
+every variant keeps a genuine compressed bottleneck. Even the $16\times16$ skip carries
 $256 \times 16 \times 16 = 65{,}536$ values at base width 32 (98{,}304 at the
 selected width 48), more than the input itself, which makes the point that a
 ``limited'' skip is limited in \emph{resolution}, not in capacity: deep features
@@ -794,27 +796,7 @@ to conceal.
 \subsection{Results}
 
 \subsubsection{Final training}
-
-The selected configuration was retrained for the full 60 epochs (Weights \&
-Biases run \texttt{udae}): 9.31\,M parameters, a $64 \times 8 \times 8 = 4{,}096$-value
-latent ($12\times$ compression) and no skip connections. At batch size 16 an epoch
-is 184 optimiser steps and took about 19\,s on the T4, so the whole run took
-about 20 minutes. Early stopping (patience 12) never triggered: the best
-validation score, 0.7023, was reached at epoch 59 of 60, where the validation
-manifest gives 24.29~dB PSNR and 0.7974 SSIM overall and, per condition,
-25.59~dB / 0.833 (clean), 25.25~dB / 0.827 (salt-and-pepper), 25.31~dB / 0.816
-(blur) and 21.02~dB / 0.714 (occlusion).
-
-The curves in Fig.~\ref{fig:task1curves} show where that score came from. It was
-0.629 at epoch 17 and 0.702 at epoch 59: most of the gain arrived in the
-low-learning-rate tail of the warm-up and cosine schedule. While the learning
-rate was high, validation PSNR oscillated by about $\pm0.7$~dB from epoch to
-epoch; the oscillation settled as the rate decayed. The same configuration had
-scored 0.6263 after its 15-epoch trial, so the four-times-longer schedule added
-0.076---a reminder that the search ranks configurations at low fidelity and the
-absolute values of Table~\ref{tab:task1search} understate what a full run reaches.
-Training and validation losses track each other closely throughout, as expected
-when every epoch draws fresh corruptions: there is no sign of overfitting.
+\todo{final training of the three variants on Kaggle: parameters, epochs, best epoch and validation score per variant, epoch time; interpret the training curves}
 
 \begin{figure*}[t]
 \centering
@@ -827,12 +809,7 @@ The dotted line marks the best epoch (59).}
 \end{figure*}
 
 \subsubsection{Test results}
-
-Tables~\ref{tab:task1bytype} and~\ref{tab:task1bylevel} give the test results on
-the official manifest (36{,}690 entries, float32). Pooled over the 33{,}021
-corrupted entries the UDAE reaches \textbf{23.82~dB PSNR and 0.7845 SSIM}, against
-19.26~dB / 0.6346 for the corrupted input itself and 27.53~dB / 0.8611 for the
-oracle classical baselines.
+\todo{test results of the deployed variant by type and severity with the identity and oracle-classical baselines; interpret}
 
 \begin{table*}[t]
 \caption{Task 1 test results per input condition (36{,}690 entries; 3{,}669 clean
@@ -872,53 +849,6 @@ salt & low & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \missingtable{task1_comparison_by_type_level.tex}{outputs/task1/tables/comparison_by_type_level.tex}}
 \end{table*}
 
-\textbf{The ${\approx}25$~dB ceiling.} The most striking feature of the results is
-how \emph{constant} the output quality is. Clean inputs, all three salt-and-pepper
-levels and the low and medium blur levels all come out at 25.0--25.3~dB and SSIM
-0.82--0.83 (Fig.~\ref{fig:task1severity}). The bottleneck caps how faithfully any
-image can be reproduced, whatever the input. The consequence cuts both ways. The
-UDAE helps most where the corruption is severe---salt-and-pepper high rises from
-13.14 to 25.04~dB (+11.9~dB) and occlusion high from 10.76 to 19.80~dB
-(+9.0~dB)---but it \emph{hurts} mild corruptions and clean images: the low blur
-level drops from 32.34 to 25.28~dB ($-7.1$~dB), and a clean image, which needs no
-change at all, comes back at 25.12~dB / 0.828 instead of unchanged. This is the
-cost of universality, and it is the direct motivation for the identity bypass and
-the specialists of Task~2 and for the soft routing of Task~3: a system that knows
-an image is clean can return it exactly.
-
-\textbf{Against the oracle.} The classical baselines beat the UDAE in PSNR on all
-nine corrupted groups, but they are given the corruption type, its exact parameters and, for
-occlusion, the mask; the UDAE is blind to all three. The comparison is therefore a
-measure of what that knowledge is worth rather than a contest: the median filter
-removes most impulses because it is told that the image contains them, while the
-UDAE must first infer it. The gap is smallest for the strongest
-degradations---occlusion high (19.80 against 20.25~dB) and blur high (24.34
-against 25.41~dB)---and for blur high the UDAE even reaches a \emph{higher} SSIM than
-unsharp masking with the true kernel (0.756 against 0.735): the learned prior
-reconstructs structure that a one-step deconvolution cannot recover.
-
-\textbf{Occlusion is the hardest condition}, about 4~dB below the others on the
-validation set and 21.45~dB / 0.728 on the test set: pixels behind a black mask
-carry no information, so the model must synthesise plausible content, whereas
-noise and blur leave evidence in the corrupted pixels. \textbf{Severity.} The
-high levels sit at the upper edge of the training ranges
-(Section~\ref{sec:data}), and their effect differs by corruption:
-salt-and-pepper is flat across severities (25.13, 25.13 and 25.04~dB), whereas
-blur high loses 0.8~dB and 0.06 SSIM relative to medium and occlusion degrades
-steadily (23.03, 21.52 and 19.80~dB) as the hidden area grows from 10 to 35\%.
-
-\textbf{Both sides of the bottleneck, measured.} Two diagnostics separate the
-leak from the loss. Impulse survival on the 11{,}007 salt-and-pepper entries is
-\textbf{0.0023}---0.20, 0.22 and 0.25\% at the three levels---so 99.8\% of the
-impulse-hit pixels end up closer to their clean value than to the impulse: there
-is no shortcut for the corruption. The detail ratio on the 3{,}669 clean entries is
-\textbf{0.498}: the output has only half the Laplacian energy of the clean image,
-so half of the fine texture is lost even when nothing needed fixing. The
-representative examples in Fig.~\ref{fig:task1examples} show the same: impulses
-vanish at every level, while fur and background texture are visibly smoothed,
-and occluded regions are filled with smooth, plausible but textureless content
-that is good for a single small rectangle and poor for three large ones.
-
 \begin{figure*}[t]
 \centering
 \resultfig[0.30\textheight]{task1_representative_examples_1.png}{0.48\textwidth}{From
@@ -946,9 +876,9 @@ ${\approx}25$~dB ceiling.}
 \end{figure*}
 
 \subsubsection{Skip-connection ablation}
+\todo{interpret Table~\ref{tab:task1skip}: PSNR/SSIM, impulse survival and detail ratio of udae, udae\_skip16, udae\_skip32; which variant is deployed and why (validation score), and whether any skip leaks the corruption}
 \label{sec:task1skip}
 
-\IfFileExists{tables/task1_skip_ablation.tex}{%
 \begin{table}[t]
 \caption{Skip-connection ablation: one limited skip added at the stated
 resolution, same hyperparameters and epoch budget as the main model.}
@@ -957,22 +887,9 @@ resolution, same hyperparameters and epoch budget as the main model.}
 \footnotesize
 \resulttable{task1_skip_ablation.tex}{}
 \end{table}
-Table~\ref{tab:task1skip} gives the ablation.
-\todo{interpret Table~\ref{tab:task1skip}: whether a limited skip improves clean
-and mildly corrupted inputs, whether impulse survival and the detail ratio
-confirm the leak-versus-detail trade-off, and whether the evidence supports
-keeping the pure bottleneck}}{%
-The three limited-skip variants are implemented (\texttt{--skip-resolutions 16},
-\texttt{32}, \texttt{128}; \texttt{evaluate.py --compare} writes the comparison
-table) but were not trained: the free Colab GPU quota ran out after the main
-model (Section~\ref{sec:setup}), and the remaining GPU time went to the required
-Tasks~2--4. The two diagnostics above therefore stand for the main model alone.
-They already quantify both sides of the trade-off the ablation was designed to
-measure---no leak (impulse survival 0.0023) and a real detail cost (detail ratio
-0.498)---but they cannot show how much a limited skip would trade one for the
-other, which remains the most informative missing experiment of Task~1.}
 
 \subsection{Failure analysis}
+\todo{failure analysis from the new failure-case figure}
 
 \begin{figure}[t]
 \centering
@@ -984,43 +901,6 @@ loses most PSNR relative to its own input (rows 5--6). Labels give output PSNR
 (input PSNR) and SSIM.}
 \label{fig:task1failures}
 \end{figure}
-
-Figure~\ref{fig:task1failures} shows the failures, chosen by rank rather than by
-hand. They fall into four modes, and the same two photographs account for the
-four worst-SSIM rows.
-
-\emph{Black backgrounds read as occlusion.} The worst clean output (11.1~dB /
-0.438) and the worst high-occlusion output (10.0~dB / 0.305) are the same cat
-photographed against a uniformly black background. The UDAE fills much of that
-background with a bright grey haze, exactly as it fills occlusion rectangles: in
-training, large black regions are almost always masks to be inpainted, and a
-blind model cannot tell black content from a black mask. This is a limitation of
-the single-model design together with the training distribution; the Task~2
-classifier faces the same ambiguity, studied there through the share of dark
-pixels in clean photographs.
-
-\emph{Dense texture beyond the bottleneck.} The worst high salt-and-pepper
-(15.7~dB from 13.1~dB, SSIM 0.482) and high blur (15.6~dB, below its 19.1~dB
-input, SSIM 0.385) outputs are the same beagle on grass dense with small yellow
-flowers. The output replaces the texture with brownish blotches and shifts the
-colours: a scene whose information is mostly high-frequency texture cannot pass
-through 4{,}096 latent values, and under salt-and-pepper the flowers are also
-easily mistaken for impulses. This is a bottleneck limitation.
-
-\emph{Atypical colours.} A grey cat on a saturated purple backdrop with a low blur
-(input 37.0~dB) comes back at 15.7~dB because the backdrop is rendered
-blue-grey: the decoder pulls colours towards the statistics of the pet
-photographs it was trained on. This is a training-distribution limitation that
-the $L_1$ term only partly counteracts, since the selected loss gives it a weight
-of 0.285.
-
-\emph{No way to leave an image alone.} An occlusion rectangle that falls on an
-already black background leaves the input practically unchanged (87.3~dB), yet the
-UDAE returns 28.0~dB with the Sphynx cat's pink skin turned beige. Together with
-the clean and mild-blur results above, this is the price of universality: the
-model always re-synthesises the whole image. It is a limitation of the
-single-model design, and precisely what the identity branch of Tasks~2 and~3
-removes.
 
 \section{Task 2: Corruption Classification and Hard Routing}
 \label{sec:task2}
@@ -1064,10 +944,14 @@ Three specialist autoencoders are trained, one per corruption, each seeing
 \emph{only} its own corruption with a fresh severity on every load and the clean
 image as target. The three runs are fully independent---different seeds, separate
 optimisers, separate checkpoints---so their parameters are independently trained
-as the brief requires. They share the architecture of Section~\ref{sec:task1}
-with a pure bottleneck and no skips, for the same reason: a specialist is still a
-denoising autoencoder, and a skip would pass its own corruption's
-high-frequency signature past the latent.
+as the brief requires. They share the architecture of Section~\ref{sec:task1}.
+A first set of specialists with a pure bottleneck produced over-smoothed outputs and
+blurry occlusion fills, so the final specialists add \emph{one} limited skip at
+$32\times32$ (\texttt{configs/task2\_specialists\_skip.yaml}), one level above
+their $16\times16$ latent---the counterpart of Task~1's $16\times16$ skip on its
+$8\times8$ latent. No full-resolution skip is used, so a specialist cannot pass its
+corruption's pixel-level signature straight to the output; the latent remains the
+only path at the coarsest scale.
 
 To keep the experiment computationally feasible the brief permits one shared
 architecture search. Each trial trains all three specialists with the trial's
@@ -1658,10 +1542,10 @@ of hard routing is often empty; the clean row is best compared by SSIM.}
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
  & PSNR* & SSIM & PSNR* & SSIM & PSNR* & SSIM & PSNR* & SSIM \\
 \midrule
-clean & 25.12 & 0.8282 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
-salt & 25.10 & 0.8251 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
-blur & 24.92 & 0.8005 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
-occlusion & 21.45 & 0.7279 & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+clean & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+salt & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+blur & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
+occlusion & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd & \tbd \\
 \bottomrule
 \end{tabular}%
 \missingtable{task3_comparison_by_type.tex}{outputs/task3/tables/comparison_by_type.tex}}
@@ -1911,17 +1795,19 @@ weights remain comparable; the sharpness diagnostic introduced below is recorded
 for every trial so that the blur a large $\lambda_{L_1}$ induces stays visible.
 TPE is seeded at 42 and the median pruner waits for four trials and three epochs.
 
-The final run trains the selected configuration from scratch for 120 epochs with
+The final run trains the selected configuration from scratch for \textbf{200
+epochs}---the pix2pix setting for datasets of this size~\cite{isola2017image}---with
 the pix2pix schedule: a constant learning rate for the first half, then linear
-decay to zero. The search was planned as 20 trials of 10 epochs; on Kaggle,
-after the Colab quota ran out, it was reduced to \textbf{10 trials of 8 epochs}
-(30-minute cap). Ten trials are the reference configuration and nine random
-start-up proposals---TPE begins modelling only after ten---so, as for Task~3,
-the search is effectively a small random search around the reference point.
+decay to zero. The search ran \textbf{18 trials of 12 epochs} (35-minute cap). A
+first, smaller search (10 trials of 8 epochs) had selected a discriminator learning
+rate 4.5$\times$ below the generator's, and its 120-epoch model drew soft, faint
+strokes---a symptom of a discriminator too weak to penalise blur. The
+discriminator learning-rate range was therefore narrowed to start at
+$1.5\times10^{-4}$ and the task was retrained; only the second run is reported.
 
 \begin{table}[t]
-\caption{Optuna search space for Task 4 (study \texttt{task4\_cgan}, 10 trials of
-8 epochs on Kaggle), the reference trial~0, and the selected configuration.}
+\caption{Optuna search space for Task 4 (study \texttt{task4\_cgan}, 18 trials of
+12 epochs on Kaggle), the reference trial~0, and the selected configuration.}
 \label{tab:task4search}
 \centering
 \setlength{\tabcolsep}{3.5pt}
@@ -2098,18 +1984,19 @@ NVIDIA T4 GPUs~\cite{nvidiat4} with mixed precision~\cite{micikevicius2018mixed}
 environments. Task~1 (search, final training, evaluation and export) and both
 Task~2 searches ran on a free-tier Google Colab~\cite{colab} instance with one
 T4. On the deadline day the free Colab GPU quota was exhausted, so the remaining
-work---Task~2's final models and evaluation, and all of Tasks~3 and~4---was moved
-to a Kaggle notebook with two T4 GPUs. A single runner,
-\texttt{scripts/kaggle\_run.py}, prepares both datasets and drives two pipelines
-in parallel, one per GPU: GPU~0 trains the classifier and the salt-and-pepper and
-blur specialists, waits for the occlusion specialist, evaluates and exports
-Task~2 and then runs all of Task~3, which needs every Task~2 model; GPU~1 trains
-the occlusion specialist and then all of Task~4. Every step writes a completion
-marker, so the runner can simply be restarted after an interruption. Task~2's
-final models are retrained there from the configurations selected on Colab,
-committed as \texttt{configs/task2\_*.yaml}, and only the Kaggle results are
-reported. The deadline also forced shorter Optuna budgets for Tasks~3 and~4
-(Table~\ref{tab:budgets}).
+work was moved to a Kaggle notebook with two T4 GPUs. A first Kaggle run produced
+working models for every task, but inspection showed over-smoothed restorations and
+faint sketches, so \emph{all final models were retrained} in a second Kaggle run,
+which is the only one reported. A single runner, \texttt{scripts/kaggle\_run.py},
+prepares both datasets and drives three jobs in parallel: GPU~0 trains and
+evaluates the three Task~1 variants and writes the skip-ablation table; GPU~1 runs
+Task~4 and, alongside it, Task~2 (classifier and the three skip specialists)
+followed by Task~3, which is built from the new Task~2 models. Every step writes a
+completion marker, so the runner can simply be restarted after an interruption.
+The final models use the hyperparameters selected by the Optuna studies (the
+Task~1 and Task~2 studies ran on Colab and are committed as
+\texttt{configs/task1.yaml} and \texttt{configs/task2\_*.yaml}); the deadline
+forced a shorter Optuna budget for Task~3 (Table~\ref{tab:budgets}).
 
 \textbf{Resumable runs.} Because free-tier sessions
 disconnect without warning, every component is built to resume: training writes a
@@ -2148,9 +2035,8 @@ what each study actually ran.
 
 \begin{table}[t]
 \caption{Optuna budgets and final training runs. C/P: completed and pruned
-trials; time: sum of trial durations. The Task~3 and Task~4 budgets were cut on
-Kaggle; the original plan was 20 trials of 1+4 epochs and a 2+20-epoch final run
-for Task~3, and 20 trials of 10 epochs for Task~4.}
+trials; time: sum of trial durations. The Task~3 budget was cut on Kaggle; the
+original plan was 20 trials of 1+4 epochs and a 2+20-epoch final run.}
 \label{tab:budgets}
 \centering
 \footnotesize
@@ -2159,11 +2045,11 @@ for Task~3, and 20 trials of 10 epochs for Task~4.}
 \toprule
 Study & GPU & Trials $\times$ ep. & C/P & Time & Final run \\
 \midrule
-T1 UDAE & Colab & 33 (of 40) $\times$ 15 & 15/18 & 89.6 min & 60 ep., 20 min \\
+T1 UDAE & Colab & 33 (of 40) $\times$ 15 & 15/18 & 89.6 min & $3{\times}60$ ep., Kaggle \\
 T2 classifier & Colab & 30 $\times$ 12 & 5/25 & 15.6 min & 60 ep., Kaggle \\
 T2 specialists & Colab & 20 $\times$ 6 ($\times 3$) & 12/8 & 61.5 min & $3{\times}40$ ep., Kaggle \\
 T3 soft MoE & Kaggle & 6 $\times$ (1+3) & \tbd & \tbd & 2+10 ep. \\
-T4 cGAN & Kaggle & 10 $\times$ 8 & \tbd & \tbd & 120 ep. \\
+T4 cGAN & Kaggle & 18 $\times$ 12 & \tbd & \tbd & 200 ep. \\
 \bottomrule
 \end{tabular}
 \\[2pt]
@@ -2179,8 +2065,7 @@ its own run, grouped per study, with its parameters in the configuration and its
 per-epoch validation metrics logged; final runs additionally log per-condition
 metrics, sample image grids at fixed intervals using \emph{fixed} validation
 indices so that progress is comparable across epochs, and the best checkpoint as
-a model artefact---for example, the final Task~1 run \texttt{udae} stores its
-\texttt{best.pt} from epoch 59. The Kaggle runs log to the same project.
+a model artefact. The Colab and Kaggle runs log to the same project.
 \todo{make the Weights \& Biases project public (or link a W\&B report) before
 submission}
 
@@ -2375,9 +2260,7 @@ versions targets opset 18 and can emit invalid \texttt{Split} nodes. Every expor
 evaluation mode on at least 32 \emph{real} test inputs spanning all conditions and
 severities---not random noise, so that the gate sees realistic logits---and the
 maximum absolute difference must stay below $10^{-4}$, or the file is rejected
-and the script fails. For the universal autoencoder the measured maximum
-difference is $8.64\times10^{-7}$ on 64 test inputs and $3.58\times10^{-7}$ on a
-single image, more than two orders of magnitude inside the tolerance. Each model
+and the script fails. \todo{measured parity of all exported models (from the model cards)} Each model
 is accompanied by a JSON model card recording its configuration, input and output
 specification, preprocessing, test metrics, hyperparameters, the measured
 parity, the Weights \& Biases run URL, the git commit and the export time; the

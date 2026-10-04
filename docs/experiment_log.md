@@ -73,22 +73,15 @@ retrain only.
 CNN on this data. The remaining errors are expected among the mildest blurs vs naturally soft
 clean photos (to be confirmed by the blur-strength analysis in the classifier evaluation).
 
-### Final classifier and test evaluation (deployed model, Kaggle 2026-10-04)
+### Final models — retrained (2026-10-04 evening, Kaggle)
 
-- Retrained on Kaggle from `configs/task2_classifier.yaml`; early stopping kept **epoch 13**.
-- **Test (36,690 entries): accuracy 0.9962, macro-F1 0.9937, macro-precision 0.9931,
-  macro-recall 0.9944.** Validation (736): accuracy 0.9986, macro-F1 0.9986.
-- Per class (test): clean P 0.977 / R 0.985 / F1 0.981; salt 1.000 / 1.000 / 1.000;
-  blur 0.997 / 0.997 / 0.997; occlusion 0.998 / 0.995 / 0.997.
-- Source: `models/classifier.json` (model card) and `outputs/task2/tables`.
+The first Kaggle run's Task 2 models worked (classifier ≈ 99.6 % test accuracy) but the pure-
+bottleneck specialists over-smoothed and filled occlusions with blurry smears. The final run
+retrains the classifier (same configuration) and the three specialists with one limited skip at
+32×32 (`configs/task2_specialists_skip.yaml`). Hyperparameters come from the Colab searches,
+which were run without skips (limitation). The first run's numbers were removed.
 
-**Interpretations for the report**
-
-1. Clean is the hardest class (F1 0.981): its errors are naturally soft clean photos predicted as
-   blur and dark regions predicted as occlusion; salt-and-pepper is detected perfectly.
-2. With a near-perfect classifier, predicted routing almost equals oracle routing; the brief's
-   "classifier errors cause restoration failures" analysis contains few cases, discussed
-   individually (`outputs/task2/tables/routing_misrouting`).
+*Results: pending (Kaggle retrain in progress).*
 
 ### Incident: quick check contaminated the real checkpoints (found and fixed 2026-10-03)
 
@@ -132,19 +125,6 @@ clean photos (to be confirmed by the blur-strength analysis in the classifier ev
 4. After only 6 epochs the specialists' validation scores (blur 0.73) are already close to the
    fully trained universal model's (blur 0.724 after 60 epochs).
 
-### Final specialists (deployed models, Kaggle 2026-10-04)
-
-Test entries of their own corruption (oracle routing), 3,669 per severity (model cards):
-
-| Specialist | PSNR low / medium / high | SSIM low / medium / high | best epoch (of 40) |
-|---|---|---|---|
-| salt | 29.60 / 29.49 / 29.25 | 0.914 / 0.911 / 0.907 | 36 |
-| blur | 28.81 / 28.58 / 26.58 | 0.890 / 0.877 / 0.796 | 38 |
-| occlusion | 25.16 / 23.02 / 20.78 | 0.846 / 0.795 / 0.715 | 38 |
-
-The best epochs are close to the end of the 40-epoch schedule: slightly longer training might
-still help (a limitation).
-
 ### Move to Kaggle (2026-10-04)
 
 Colab's free GPU quota ran out before the specialists' final runs completed, on the deadline day.
@@ -161,27 +141,14 @@ On Kaggle the Task 2 classifier stopped early after 2.4 min (≈ 3.5 s/epoch); t
 
 ## Task 3 — Soft mixture of experts
 
-### Kaggle run (2026-10-04)
+### Retrain (2026-10-04 evening, Kaggle)
 
-- Optuna study `task3_moe`: 6 trials (1 warm-up + 3 joint epochs each), 15.9 min.
-- Final run: 2 warm-up + 10 joint epochs, 9.3 min (≈ 24 s per warm-up epoch, ≈ 47 s per joint
-  epoch on a T4); best at epoch 10, **validation score 0.8260** (0.8251 after warm-up).
-  Selected temperature **tau = 2.678** (search range 0.3–3.0).
-- Routing during training: argmax routing accuracy 0.995–0.996 on validation; mean branch usage
-  0.25 / 0.25 / 0.25 / 0.25 (identity, salt, blur, occlusion) — no collapse.
-- Test evaluation 6.1 min over 36,690 entries; `moe.onnx` 49.2 MB.
+Rebuilt from the retrained Task 2 models: new Optuna study (6 trials of 1 warm-up + 3 joint
+epochs), final 2 warm-up + 10 joint epochs. Lesson kept from the first run: a high selected
+temperature did not make routing soft — with the cross-entropy term on the raw gate logits, the
+logits grow and routing stays near one-hot, so check the routing entropy rather than tau.
 
-**Test-set results (`models/moe.json`):** all entries PSNR 29.88 dB / SSIM 0.868; corrupted
-27.05 dB / 0.854; clean 55.34 dB / 0.9986; salt 29.80 / 0.914; blur 28.27 / 0.858; occlusion
-23.07 / 0.790. Routing: top-1 routing accuracy 0.998, mean routing entropy 0.107 nats (maximum
-ln 4 = 1.386), weight on the correct branch 0.927 (clean → identity), 0.989 (salt), 0.936 (blur),
-0.968 (occlusion); usage 0.257 / 0.250 / 0.245 / 0.249; largest off-class weight 0.033; no collapse.
-
-**Interpretation:** routing is sharp, not blended — the earlier guess that the high temperature
-(tau 2.68) makes the gate blend experts was wrong. With the cross-entropy term (lambda_ce 0.29)
-applied to the raw gate logits, the logits grow large during training, so even dividing by 2.68
-leaves near one-hot weights: temperature and logit scale trade off. The identity branch keeps
-clean images almost unchanged (55 dB) instead of re-synthesising them.
+*Results: pending (Kaggle retrain in progress).*
 
 ## Task 4 — Face-to-sketch cGAN
 
