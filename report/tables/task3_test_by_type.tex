@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Soft MoE on the test set. PSNR* excludes outputs identical to the target (PSNR capped at 100 dB, counted in Exact).}
+\label{tab:task3_by_type}
+\begin{tabular}{lrrrrr}
+\toprule
+Type & n & PSNR & PSNR* & SSIM & Exact \\
+\midrule
+clean & 3669 & 55.34 & 55.34 & 0.9986 & 0 \\
+salt & 11007 & 29.80 & 29.80 & 0.9140 & 0 \\
+blur & 11007 & 28.27 & 28.27 & 0.8583 & 0 \\
+occlusion & 11007 & 23.07 & 23.07 & 0.7898 & 0 \\
+all & 36690 & 29.88 & 29.88 & 0.8685 & 0 \\
+corrupted & 33021 & 27.05 & 27.05 & 0.8540 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

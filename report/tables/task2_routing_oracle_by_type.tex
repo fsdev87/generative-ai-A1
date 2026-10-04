@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Hard routing (oracle), test set. PSNR*: mean over outputs that are not exact copies of the target; Exact: identity-bypass outputs equal to the clean target (PSNR capped at 100 dB, SSIM 1).}
+\label{tab:t2_routing_oracle_by_type}
+\begin{tabular}{lrrrr}
+\toprule
+Type & n & PSNR* & SSIM & Exact \\
+\midrule
+clean & 3669 & -- & 1.0000 & 3669 \\
+salt & 11007 & 29.45 & 0.9106 & 0 \\
+blur & 11007 & 27.99 & 0.8545 & 0 \\
+occlusion & 11007 & 22.99 & 0.7852 & 0 \\
+all & 36690 & 26.81 & 0.8651 & 3669 \\
+corrupted & 33021 & 26.81 & 0.8501 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

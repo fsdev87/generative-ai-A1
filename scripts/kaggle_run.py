@@ -49,8 +49,56 @@ def module(name, *args):
     return [PY, "-m", name, *map(str, args)]
 
 
+def retrain_pipelines(smoke):
+    """Second Kaggle run: Task 1 skip-connection ablation and a larger Task 4 search.
+
+    Task 1 is retrained three times from the configuration its Colab search selected
+    (configs/task1.yaml): without skips and with one limited skip at 16x16 or 32x32; every
+    variant is evaluated and exported, and the comparison table is written. Task 4 runs a larger
+    Optuna study (narrowed discriminator learning rate) and a 200-epoch final run.
+    """
+    out = ENV["OUTPUT_DIR"]
+    s = ["--smoke"] if smoke else []
+    cfg = [] if smoke else ["--config", REPO / "configs/task1.yaml", "--resume"]
+
+    def t1(variant, skips):
+        skip_args = ["--skip-resolutions", *skips] if skips else []
+        name = "udae" if not skips else f"udae_skip{skips[0]}"
+        return [
+            (f"t1-{name}", module("src.task1.train", *cfg, *skip_args, *s)),
+            (f"t1-{name}-eval", module("src.task1.evaluate", "--variant", name, *s)),
+        ]
+
+    if smoke:
+        t4_search, t4_train = module("src.task4.optuna_search", "--smoke"), module("src.task4.train", "--smoke")
+    else:
+        t4_search = module("src.task4.optuna_search", "--n-trials", 18, "--epochs", 12, "--timeout-min", 35)
+        t4_train = module("src.task4.train", "--config", out / "task4" / "best_config.yaml", "--resume",
+                          "--epochs", 200)
+    gpu0 = [
+        *t1("udae", []),
+        *t1("udae_skip32", [32]),
+        ("wait", "t1-udae_skip16-eval"),
+        ("t1-compare", module("src.task1.evaluate", "--compare", "udae", "udae_skip16", "udae_skip32", *s)),
+        ("t1-export-udae", module("src.task1.export_onnx", *s)),
+        ("t1-export-skip16", module("src.task1.export_onnx", "--variant", "udae_skip16", *s)),
+        ("t1-export-skip32", module("src.task1.export_onnx", "--variant", "udae_skip32", *s)),
+    ]
+    gpu1 = [
+        *t1("udae_skip16", [16]),
+        ("t4-optuna", t4_search),
+        ("t4-train", t4_train),
+        ("t4-eval", module("src.task4.evaluate", *s)),
+        ("t4-export", module("src.task4.export_onnx", *s)),
+    ]
+    return gpu0, gpu1
+
+
 def pipelines(smoke):
-    """(GPU-0 steps, GPU-1 steps). A step is (name, command) or ("wait", step_name)."""
+    """First Kaggle run (2026-10-04): Task 2 final models, Task 3 and Task 4.
+
+    (GPU-0 steps, GPU-1 steps). A step is (name, command) or ("wait", step_name).
+    """
     out = ENV["OUTPUT_DIR"]
     if smoke:
         t2_cls = [module("src.task2.train_classifier", "--smoke")]
@@ -186,6 +234,9 @@ def main():
     parser.add_argument("--pack", action="store_true", help="only zip the results for download")
     parser.add_argument("--gpus", type=int, help="override the number of GPUs used (testing)")
     parser.add_argument("--redo", action="store_true", help="forget finished-step markers")
+    parser.add_argument("--plan", choices=("retrain", "initial"), default="retrain",
+                        help="retrain: Task 1 skip ablation + larger Task 4 search (default); "
+                             "initial: the first run (Task 2 final models, Tasks 3 and 4)")
     args = parser.parse_args()
 
     os.environ.update({k: str(v) for k, v in ENV.items()})
@@ -208,14 +259,16 @@ def main():
     if n_gpus == 0 and not args.smoke:
         raise SystemExit("No GPU: in the notebook settings choose Accelerator -> GPU T4 x2.")
 
-    gpu0, gpu1 = pipelines(args.smoke)
+    gpu0, gpu1 = (retrain_pipelines if args.plan == "retrain" else pipelines)(args.smoke)
     if n_gpus >= 2:
         b = Pipeline("gpu1", gpu1, gpu=1)
         a = Pipeline("gpu0", gpu0, gpu=0, others=[b])
         workers = [a, b]
     else:
-        # One GPU: occlusion first so the GPU-0 list never waits, then Task 4 last
-        order = gpu0[:4] + gpu1[:1] + gpu0[4:] + gpu1[1:]
+        # One GPU: run GPU 1's first block before GPU 0's wait so nothing waits forever
+        cut0 = next(i for i, (name, _) in enumerate(gpu0) if name == "wait")
+        cut1 = 2 if args.plan == "retrain" else 1
+        order = gpu0[:cut0] + gpu1[:cut1] + gpu0[cut0:] + gpu1[cut1:]
         workers = [Pipeline("gpu", order, gpu=0 if n_gpus else None)]
     for w in workers:
         w.start()

@@ -1,0 +1,17 @@
+# Task 1 configuration selected by the Optuna study task1_udae on Colab (best trial 32 of 33).
+# Committed so the final runs (no skip and the limited-skip ablation) can be repeated anywhere.
+base_channels: 48
+latent_channels: 64
+depth: 4
+dropout: 0.015569404260111112
+skip_resolutions: []
+alpha: 0.28484727908952284
+lr: 0.0008283787916636472
+weight_decay: 0.0001
+batch_size: 16
+warmup_epochs: 1
+min_lr_ratio: 0.01
+grad_clip: 1.0
+patience: 12
+seed: 42
+amp: true

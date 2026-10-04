@@ -42,7 +42,7 @@ GROUP = "task4-optuna"
 
 # Search space (docs/fs2k_notes.md explains every range)
 LR_G_RANGE = (5e-5, 5e-4)       # log-uniform around pix2pix's 2e-4
-LR_D_RANGE = (5e-5, 5e-4)       # searched separately: the G/D learning-rate ratio sets the balance
+LR_D_RANGE = (1.5e-4, 5e-4)     # searched separately; lower bound raised after a first search picked lr_d 4.5x below lr_g (weak D, soft strokes)
 BATCH_SIZES = (4, 8, 16)        # 224 / 112 / 56 updates per epoch on 899 training pairs
 BASE_CHANNELS = (32, 48, 64)    # 10.5M / 23.6M / 41.9M generator parameters (64 -> a 168 MB ONNX file)
 DROPOUT_RANGE = (0.0, 0.5)      # pix2pix uses 0.5 as its only noise source

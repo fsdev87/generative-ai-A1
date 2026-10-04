@@ -47,87 +47,17 @@ Hardware for every run: Google Colab free tier, NVIDIA Tesla T4, mixed precision
    configurations that learn fast. The final run trains 4× longer, which mitigates this.
 4. Possible improvement given more GPU time: more trials (the best was the last trial).
 
-### Final training (2026-10-03, W&B run `udae`, id `i066ij8w`)
+### Final models — retrained (2026-10-04 evening, Kaggle)
 
-- 9.31 M parameters; latent 64×8×8 = 4,096 (12× compression); no skip connections.
-- 184 steps/epoch, ≈ 19 s/epoch on the T4; 60 epochs ≈ 20 min; early stopping (patience 12) never triggered.
-- **Best validation score 0.7023 at epoch 59** (of 60); `best.pt` uploaded to W&B as an artifact.
-- Validation per condition at the best epoch:
+The first final model (no skip, trained on Colab) showed an output-quality ceiling of about
+25 dB and lost most fine detail even on clean inputs. Task 1 was therefore retrained on Kaggle
+from the same Optuna-selected configuration (`configs/task1.yaml`) as a skip-connection
+ablation: no skip (`udae`), one limited skip at 16×16 (`udae_skip16`) and at 32×32
+(`udae_skip32`), each 60 epochs, evaluated on the full test manifest, compared, and exported.
+The first run's numbers were removed from this log and the report; results below come from the
+retrain only.
 
-  | Condition | PSNR (dB) | SSIM |
-  |---|---|---|
-  | clean | 25.59 | 0.833 |
-  | blur | 25.31 | 0.816 |
-  | occlusion | 21.02 | — (score 0.620) |
-  | salt-and-pepper | see W&B summary | |
-
-**Interpretations for the report**
-
-1. *Learning-rate schedule.* The score was 0.629 at epoch 17 and 0.702 at epoch 59: most of the
-   gain came in the low-learning-rate tail of the warm-up + cosine schedule. Validation PSNR
-   oscillated by ±0.7 dB while the learning rate was high and settled as it decayed.
-2. *Occlusion is the hardest condition* (≈ 4 dB below the others): pixels behind a black mask carry
-   no information, so the model must synthesise plausible content, whereas noise and blur leave
-   evidence in the corrupted pixels.
-3. *Cost of universality on clean inputs.* Clean images come back at 25.6 dB, not unchanged:
-   everything must pass the 4,096-value bottleneck, so fine detail is always lost. Task 2's
-   identity bypass returns correctly classified clean images exactly — a direct point for the
-   cross-task comparison.
-
-### Test evaluation (official test manifest, 36,690 entries; `best.pt`, epoch 59)
-
-- All corrupted test inputs (salt + blur + occlusion, all severities, 33,021 entries):
-  **PSNR 23.82 dB, SSIM 0.7845**. Per type × severity, with the identity baseline (no
-  restoration) and the oracle classical baselines (told the corruption type and parameters):
-
-  | Input | Identity PSNR / SSIM | Oracle classical PSNR / SSIM | **UDAE PSNR / SSIM** |
-  |---|---|---|---|
-  | clean | 100 (exact) / 1.000 | 100 / 1.000 | **25.12 / 0.828** |
-  | salt low | 20.13 / 0.602 | 30.39 / 0.893 | **25.13 / 0.828** |
-  | salt medium | 15.87 / 0.339 | 29.51 / 0.884 | **25.13 / 0.826** |
-  | salt high | 13.14 / 0.204 | 27.78 / 0.863 | **25.04 / 0.821** |
-  | blur low | 32.34 / 0.944 | 36.38 / 0.976 | **25.28 / 0.827** |
-  | blur medium | 26.77 / 0.806 | 28.32 / 0.854 | **25.14 / 0.819** |
-  | blur high | 24.35 / 0.692 | 25.41 / 0.735 | **24.34 / 0.756** |
-  | occlusion low | 16.67 / 0.862 | 26.74 / 0.930 | **23.03 / 0.782** |
-  | occlusion medium | 13.26 / 0.726 | 23.03 / 0.860 | **21.52 / 0.736** |
-  | occlusion high | 10.76 / 0.536 | 20.25 / 0.756 | **19.80 / 0.665** |
-  | all corrupted, low | 23.05 / 0.803 | 31.17 / 0.933 | **24.48 / 0.812** |
-  | all corrupted, medium | 18.63 / 0.624 | 26.95 / 0.866 | **23.93 / 0.794** |
-  | all corrupted, high | 16.08 / 0.477 | 24.48 / 0.785 | **23.06 / 0.747** |
-
-  (3,669 entries per type × level row; source `outputs/task1/tables/comparison_by_type_level.csv`.)
-- Sanity check of the exported model in the real backend (`/api/restore/universal`, sample
-  Abyssinian_201, seed 7): salt high 12.87 → 24.02 dB, blur low 30.94 → 24.42 dB, occlusion medium
-  14.10 → 19.47 dB, clean 100 → 24.30 dB — the same pattern as the test set.
-
-**Interpretation — the ~25 dB ceiling.** The UDAE's output quality is nearly constant (≈ 25 dB,
-SSIM ≈ 0.82) for clean, salt and low/medium blur inputs: the 12× bottleneck caps how faithfully
-any image can be reproduced (clean detail ratio 0.50). Consequently it helps most where the
-corruption is severe (salt high +11.9 dB, occlusion high +9.0 dB over the input) but *hurts* mild
-corruptions (blur low −7.1 dB) and clean images (exact → 25 dB). This is the direct motivation for
-Task 2's identity bypass and specialists, and for Task 3. The oracle classical baselines beat the
-UDAE in PSNR almost everywhere, but they are given the corruption type, its parameters and the
-occlusion mask; the UDAE is blind. Only for high blur does the UDAE reach a higher SSIM (0.756 vs
-0.735) than unsharp masking with the known kernel.
-- **Salt-and-pepper impulse survival: 0.0023** — of the pixels hit by an impulse, 0.23 % are still
-  closer to the impulse than to the clean value after restoration (identity = 1, perfect = 0).
-- **Clean detail ratio: 0.498** — on clean inputs the output has about half the high-frequency
-  (Laplacian) energy of the clean image (1 = equally detailed).
-
-**Interpretations for the report**
-
-1. The two diagnostics quantify both sides of the bottleneck: no shortcut for the corruption
-   (99.8 % of impulses removed) and a real price in detail (half the fine texture lost even when
-   nothing needed fixing). Limited skips would trade the second for the first — that is what the
-   ablation (`--skip-resolutions 16/32/128`) measures; not run yet (optional, GPU quota).
-
-### ONNX export
-
-- `udae.onnx` + model card `udae.json`; parity with PyTorch: **max |diff| 8.64e-7** on 64 real test
-  inputs (single image 3.58e-7), far below the 1e-4 threshold.
-
----
+*Results: pending (Kaggle retrain in progress).*
 
 ## Task 2 — Hard routing
 
@@ -143,25 +73,22 @@ occlusion mask; the UDAE is blind. Only for high blur does the UDAE reach a high
 CNN on this data. The remaining errors are expected among the mildest blurs vs naturally soft
 clean photos (to be confirmed by the blur-strength analysis in the classifier evaluation).
 
-### Final classifier and test evaluation (after the checkpoint fix)
+### Final classifier and test evaluation (deployed model, Kaggle 2026-10-04)
 
-- Final run: best validation macro-F1 **1.0000 at epoch 47** (60-epoch schedule).
-- **Test (36,690 entries): accuracy 0.9989, macro-F1 0.9981, macro-precision 0.9980,
-  macro-recall 0.9982** — about 40 errors in total. Validation (736): 1.0000 on every metric.
-- Error analysis: 0.41 % of clean test images predicted "blur" (≈ 15 images), 0.08 % predicted
-  "occlusion" (≈ 3); only 0.055 % of the *low*-severity blur entries predicted "clean" (≈ 2).
-  Full tables/figures: `outputs/task2/tables`, `outputs/task2/figures`.
+- Retrained on Kaggle from `configs/task2_classifier.yaml`; early stopping kept **epoch 13**.
+- **Test (36,690 entries): accuracy 0.9962, macro-F1 0.9937, macro-precision 0.9931,
+  macro-recall 0.9944.** Validation (736): accuracy 0.9986, macro-F1 0.9986.
+- Per class (test): clean P 0.977 / R 0.985 / F1 0.981; salt 1.000 / 1.000 / 1.000;
+  blur 0.997 / 0.997 / 0.997; occlusion 0.998 / 0.995 / 0.997.
+- Source: `models/classifier.json` (model card) and `outputs/task2/tables`.
 
 **Interpretations for the report**
 
-1. Contrary to the expectation that the mildest blur would be confused with clean photos, the
-   classifier detects even the (3, 0.7) blur level almost perfectly; its dominant error is the
-   reverse — flagging naturally soft clean photos as blurred.
-2. With a near-perfect classifier, predicted routing should almost equal oracle routing: the
-   brief's "classifier errors cause restoration failures" analysis will contain few cases, to be
-   discussed individually.
-3. Task 3's gate is initialised from this classifier, so on the standard test set the soft MoE is
-   likely to route almost one-hot; the mixed-corruption experiment is where soft routing can differ.
+1. Clean is the hardest class (F1 0.981): its errors are naturally soft clean photos predicted as
+   blur and dark regions predicted as occlusion; salt-and-pepper is detected perfectly.
+2. With a near-perfect classifier, predicted routing almost equals oracle routing; the brief's
+   "classifier errors cause restoration failures" analysis contains few cases, discussed
+   individually (`outputs/task2/tables/routing_misrouting`).
 
 ### Incident: quick check contaminated the real checkpoints (found and fixed 2026-10-03)
 
@@ -205,6 +132,19 @@ clean photos (to be confirmed by the blur-strength analysis in the classifier ev
 4. After only 6 epochs the specialists' validation scores (blur 0.73) are already close to the
    fully trained universal model's (blur 0.724 after 60 epochs).
 
+### Final specialists (deployed models, Kaggle 2026-10-04)
+
+Test entries of their own corruption (oracle routing), 3,669 per severity (model cards):
+
+| Specialist | PSNR low / medium / high | SSIM low / medium / high | best epoch (of 40) |
+|---|---|---|---|
+| salt | 29.60 / 29.49 / 29.25 | 0.914 / 0.911 / 0.907 | 36 |
+| blur | 28.81 / 28.58 / 26.58 | 0.890 / 0.877 / 0.796 | 38 |
+| occlusion | 25.16 / 23.02 / 20.78 | 0.846 / 0.795 / 0.715 | 38 |
+
+The best epochs are close to the end of the 40-epoch schedule: slightly longer training might
+still help (a limitation).
+
 ### Move to Kaggle (2026-10-04)
 
 Colab's free GPU quota ran out before the specialists' final runs completed, on the deadline day.
@@ -231,21 +171,28 @@ On Kaggle the Task 2 classifier stopped early after 2.4 min (≈ 3.5 s/epoch); t
   0.25 / 0.25 / 0.25 / 0.25 (identity, salt, blur, occlusion) — no collapse.
 - Test evaluation 6.1 min over 36,690 entries; `moe.onnx` 49.2 MB.
 
-**Interpretation (to confirm with the test outputs):** the search selected a temperature near the
-soft end of the range, so the gate blends experts even though its top choice is almost always the
-right one; usage shows no collapse. Per-type numbers, routing heatmap and the mixed-corruption
-experiment: `outputs/task3` (pending download).
+**Test-set results (`models/moe.json`):** all entries PSNR 29.88 dB / SSIM 0.868; corrupted
+27.05 dB / 0.854; clean 55.34 dB / 0.9986; salt 29.80 / 0.914; blur 28.27 / 0.858; occlusion
+23.07 / 0.790. Routing: top-1 routing accuracy 0.998, mean routing entropy 0.107 nats (maximum
+ln 4 = 1.386), weight on the correct branch 0.927 (clean → identity), 0.989 (salt), 0.936 (blur),
+0.968 (occlusion); usage 0.257 / 0.250 / 0.245 / 0.249; largest off-class weight 0.033; no collapse.
+
+**Interpretation:** routing is sharp, not blended — the earlier guess that the high temperature
+(tau 2.68) makes the gate blend experts was wrong. With the cross-entropy term (lambda_ce 0.29)
+applied to the raw gate logits, the logits grow large during training, so even dividing by 2.68
+leaves near one-hot weights: temperature and logit scale trade off. The identity branch keeps
+clean images almost unchanged (55 dB) instead of re-synthesising them.
 
 ## Task 4 — Face-to-sketch cGAN
 
-### Kaggle run (2026-10-04, GPU 1, finished before Task 3)
+### Retrain (2026-10-04 evening, Kaggle)
 
-- Optuna study `task4_cgan`: 10 trials × 8 epochs; final run 120 epochs (details pending from
-  `outputs/task4`).
-- `generator.onnx` parity with PyTorch: max |diff| **2.86e-6** on 64 test photos (single image
-  1.36e-6).
+The first run (10 trials × 8 epochs, final 120 epochs) produced soft strokes; its search picked a
+discriminator learning rate 4.5× below the generator's. Task 4 was rerun with a larger search
+(18 trials × 12 epochs) whose discriminator learning-rate range starts at 1.5e-4, and a 200-epoch
+final run. The first run's numbers were removed; results below come from the rerun only.
 
----
+*Results: pending (Kaggle retrain in progress).*
 
 ## Still needed for the report
 
