@@ -499,7 +499,8 @@ batch, a perfectly routing gate assigns mean weight exactly $1/4$ to each
 branch, so the routing-balance regulariser is zero at the optimum of the
 classification objective instead of fighting it.
 
-\subsection{FS2K preparation for Task 4}
+subsection{FS2K preparation for Task 4}
+abel{sec:fs2kprep}
 
 FS2K provides 2{,}104 photograph-sketch pairs with an official division into
 1{,}058 training and 1{,}046 test pairs and a style label in $\{0,1,2\}$ for each
@@ -2120,6 +2121,19 @@ the $L_1$-induced blur at its most visible. The worst case is labelled Style~1 b
 its ground truth is drawn with heavy dark strokes more typical of Style~2; the
 generator follows the label and draws light contours, so part of this error
 reflects variation in the annotation rather than in the generator.
+
+\emph{Out-of-domain photographs.} Run through the application on a new photograph
+outside FS2K---a short-haired man in front of dense foliage, loosely framed---the
+generator captures the facial layout (hair line, eyes, nose, mouth, jaw) but, with
+Style~3 selected, adds long strands of hair at the sides of the face. This is the
+style/source confound of Section~\ref{sec:fs2kprep} made visible: every Style~3
+training sketch comes from the photo2/photo3 sources, mostly long-haired subjects,
+so the generator has partly learned ``Style~3'' as that appearance rather than as a
+drawing technique. Styles~1 and~2, trained on the varied CASIA-WebFace portraits,
+are the better choice for such inputs. Busy backgrounds and loose framing add a
+second domain gap, since FS2K photographs are tight crops on plain backgrounds; a
+face-detection crop before inference and training data that crosses styles with
+sources would address both.
 
 \section{Experimental Setup}
 \label{sec:setup}
