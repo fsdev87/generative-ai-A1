@@ -1,0 +1,9 @@
+# Task 2 specialists for the retrain: the Colab-selected configuration plus one limited skip
+# connection at 32x32 (one level above the 16x16 latent), mirroring the Task 1 skip ablation.
+lr: 0.0023681543308829141
+batch_size: 16
+base_channels: 48
+depth: 3
+latent_channels: 32
+alpha: 0.5157516862404526
+skip_resolutions: [32]

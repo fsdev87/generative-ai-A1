@@ -75,23 +75,49 @@ def retrain_pipelines(smoke):
         t4_search = module("src.task4.optuna_search", "--n-trials", 18, "--epochs", 12, "--timeout-min", 35)
         t4_train = module("src.task4.train", "--config", out / "task4" / "best_config.yaml", "--resume",
                           "--epochs", 200)
+    # GPU 0: the three Task 1 variants (~25 min each); GPU 1: Task 4 (~70 min) -- balanced
     gpu0 = [
         *t1("udae", []),
+        *t1("udae_skip16", [16]),
         *t1("udae_skip32", [32]),
-        ("wait", "t1-udae_skip16-eval"),
         ("t1-compare", module("src.task1.evaluate", "--compare", "udae", "udae_skip16", "udae_skip32", *s)),
         ("t1-export-udae", module("src.task1.export_onnx", *s)),
         ("t1-export-skip16", module("src.task1.export_onnx", "--variant", "udae_skip16", *s)),
         ("t1-export-skip32", module("src.task1.export_onnx", "--variant", "udae_skip32", *s)),
     ]
     gpu1 = [
-        *t1("udae_skip16", [16]),
         ("t4-optuna", t4_search),
         ("t4-train", t4_train),
         ("t4-eval", module("src.task4.evaluate", *s)),
         ("t4-export", module("src.task4.export_onnx", *s)),
     ]
-    return gpu0, gpu1
+    # Third job, sharing GPU 1 with Task 4: Task 2 retrained with skip specialists, then Task 3
+    if smoke:
+        cls = module("src.task2.train_classifier", "--smoke")
+        spec = {t: module("src.task2.train_specialist", "--type", t, "--smoke") for t in ("salt", "blur", "occlusion")}
+        t3_search, t3_train = module("src.task3.optuna_search", "--smoke"), module("src.task3.train", "--smoke")
+    else:
+        cls = module("src.task2.train_classifier", "--config", REPO / "configs/task2_classifier.yaml", "--resume")
+        spec = {t: module("src.task2.train_specialist", "--type", t, "--config",
+                          REPO / "configs/task2_specialists_skip.yaml", "--resume") for t in ("salt", "blur", "occlusion")}
+        t3_search = module("src.task3.optuna_search", "--n-trials", 6, "--trial-warmup-epochs", 1,
+                           "--trial-joint-epochs", 3, "--final-warmup-epochs", 2, "--final-joint-epochs", 10,
+                           "--timeout-min", 25)
+        t3_train = module("src.task3.train", "--config", out / "task3" / "best_config.yaml", "--resume")
+    gpu1b = [
+        ("t2-classifier", cls),
+        ("t2-classifier-eval", module("src.task2.evaluate_classifier", *s)),
+        ("t2-salt", spec["salt"]), ("t2-blur", spec["blur"]), ("t2-occlusion", spec["occlusion"]),
+        ("t2-routing-eval", module("src.task2.evaluate_routing", *s)),
+        ("t2-export", module("src.task2.export_onnx", *s)),
+        ("t3-optuna", t3_search),
+        ("t3-train", t3_train),
+        ("t3-eval", module("src.task3.evaluate", *s)),
+        ("t3-compare", module("src.task3.compare", *s)),
+        ("t3-mixed", module("src.task3.evaluate_mixed", *s)),
+        ("t3-export", module("src.task3.export_onnx", *s)),
+    ]
+    return gpu0, gpu1, gpu1b
 
 
 def pipelines(smoke):
@@ -259,16 +285,17 @@ def main():
     if n_gpus == 0 and not args.smoke:
         raise SystemExit("No GPU: in the notebook settings choose Accelerator -> GPU T4 x2.")
 
-    gpu0, gpu1 = (retrain_pipelines if args.plan == "retrain" else pipelines)(args.smoke)
+    jobs = (retrain_pipelines if args.plan == "retrain" else pipelines)(args.smoke)
+    gpu0, gpu1, extra = jobs if len(jobs) == 3 else (*jobs, [])
     if n_gpus >= 2:
         b = Pipeline("gpu1", gpu1, gpu=1)
         a = Pipeline("gpu0", gpu0, gpu=0, others=[b])
-        workers = [a, b]
+        workers = [a, b] + ([Pipeline("gpu1b", extra, gpu=1)] if extra else [])
     else:
         # One GPU: run GPU 1's first block before GPU 0's wait so nothing waits forever
-        cut0 = next(i for i, (name, _) in enumerate(gpu0) if name == "wait")
-        cut1 = 2 if args.plan == "retrain" else 1
-        order = gpu0[:cut0] + gpu1[:cut1] + gpu0[cut0:] + gpu1[cut1:]
+        cut0 = next((i for i, (name, _) in enumerate(gpu0) if name == "wait"), len(gpu0))
+        cut1 = 0 if args.plan == "retrain" else 1
+        order = gpu0[:cut0] + gpu1[:cut1] + gpu0[cut0:] + gpu1[cut1:] + extra
         workers = [Pipeline("gpu", order, gpu=0 if n_gpus else None)]
     for w in workers:
         w.start()
