@@ -3,8 +3,10 @@
 `docker compose up --build` mounts this folder read-only into the backend container at
 `/models`. Put the exported ONNX models here, each with its model card (`<name>.json`, written by
 `src/common/onnx_utils.write_model_card` during export). The `.onnx` files are not committed to
-Git (`*.onnx` is in `.gitignore`); download them from the link in the main README or export them
-yourself (`python -m src.taskN.export_onnx`, which writes to `ONNX_DIR`, default `outputs/onnx/`).
+Git (`*.onnx` is in `.gitignore`); download them from the GitHub Release
+(<https://github.com/fsdev87/generative-ai-A1/releases/latest/download/models.zip>, unzip into this
+folder — see the main README) or export them yourself (`python -m src.taskN.export_onnx`, which
+writes to `ONNX_DIR`, default `outputs/onnx/`).
 
 | File | Task / workspace | Inputs | Outputs |
 |---|---|---|---|

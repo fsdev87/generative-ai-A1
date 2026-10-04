@@ -11,9 +11,11 @@ served through a single browser application (React + Tailwind frontend, FastAPI 
 | 3 | Jointly trained soft mixture-of-experts restoration | Oxford-IIIT Pet |
 | 4 | Style-conditioned face-to-sketch conditional GAN | FS2K |
 
-- **Technical report:** `report/main.tex` (IEEE format)
+- **Technical report:** [report/main.pdf](report/main.pdf) (IEEE format, source `report/main.tex`)
 - **Demonstration video:** TODO
-- **Trained models (ONNX):** TODO — download link
+- **Trained models (ONNX):** [models.zip](https://github.com/fsdev87/generative-ai-A1/releases/latest/download/models.zip)
+  (GitHub Release; all seven models with their model cards)
+- **Experiment tracking:** Weights & Biases project `genai-a1`
 - **Project status:** [docs/STATUS.md](docs/STATUS.md)
 
 ## Quick start — run the application
@@ -23,9 +25,20 @@ Prerequisites: Docker Desktop (or Docker Engine with Compose v2). No Python, Nod
 ```bash
 git clone https://github.com/fsdev87/generative-ai-A1.git
 cd generative-ai-A1
-# 1. Fetch the trained ONNX models into ./models (see "Trained models" above)
-# 2. Start everything
+
+# 1. Download the trained ONNX models into ./models
+curl -L -o models.zip https://github.com/fsdev87/generative-ai-A1/releases/latest/download/models.zip
+unzip -o models.zip -d models
+
+# 2. Start everything (first build pulls the base images, a few minutes)
 docker compose up --build
+```
+
+On Windows PowerShell, step 1 is:
+
+```powershell
+Invoke-WebRequest -Uri https://github.com/fsdev87/generative-ai-A1/releases/latest/download/models.zip -OutFile models.zip
+Expand-Archive models.zip -DestinationPath models -Force
 ```
 
 Then open <http://localhost:5173>. The API is on <http://localhost:8000>, with interactive
